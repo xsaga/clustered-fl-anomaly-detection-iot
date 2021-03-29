@@ -8,6 +8,7 @@ import torch.nn as nn
 from pathlib import Path
 
 from matplotlib import pyplot as plt
+import seaborn as sns
 
 from sklearn.decomposition import PCA
 
@@ -38,11 +39,13 @@ class Autoencoder(nn.Module):
 model_paths = glob.glob("./*.pt")
 print(f"found {len(model_paths)} models")
 
+modelos = []
 pesos = []
 names = []
 for model_path in model_paths:
     m = Autoencoder()
     m.load_state_dict(torch.load(model_path))
+    modelos.append(m)
     pesos.append(m.decoder[2].weight.flatten().detach().numpy())
     names.append(Path(model_path).stem)
 
@@ -59,4 +62,24 @@ ax.scatter(reducido[:, 0], reducido[:, 1])
 for i, n in enumerate(names):
     ax.annotate(n, (reducido[i, 0], reducido[i, 1]))
 
+plt.show()
+
+# probar multiples z
+# z = torch.ones(26)
+# z = torch.ones(26) - 0.5
+# z = torch.randn(26)
+z = torch.zeros(26)
+
+modelos_eval = np.array(list(map(lambda m: m(z).detach().numpy(), modelos)))
+corr = np.corrcoef(modelos_eval)
+
+# cmap = sns.diverging_palette(240,20,as_cmap=True)
+# cmap = "vlag"
+cmap = sns.color_palette("Spectral", as_cmap=True)
+cmap = cmap.reversed()
+
+sns.heatmap(corr, cmap=cmap, xticklabels=names, yticklabels=names, square=True, annot=True)
+plt.show()
+
+sns.clustermap(corr, cmap=cmap, xticklabels=names, yticklabels=names)
 plt.show()
