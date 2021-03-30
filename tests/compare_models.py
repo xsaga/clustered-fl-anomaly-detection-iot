@@ -10,6 +10,8 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import seaborn as sns
 
+from sklearn import metrics
+from sklearn.cluster import AgglomerativeClustering
 from sklearn.decomposition import PCA
 
 class Autoencoder(nn.Module):
@@ -82,4 +84,14 @@ sns.heatmap(corr, cmap=cmap, xticklabels=names, yticklabels=names, square=True, 
 plt.show()
 
 sns.clustermap(corr, cmap=cmap, xticklabels=names, yticklabels=names)
+plt.show()
+
+# select number of clusters
+num_clusters = list(range(2, corr.shape[0]))
+silhouette_scores = []
+for n in num_clusters:
+    clustering = AgglomerativeClustering(n_clusters=n).fit(corr)
+    silhouette_scores.append(metrics.silhouette_score(corr, clustering.labels_))
+
+plt.plot(num_clusters, silhouette_scores)
 plt.show()
