@@ -167,7 +167,8 @@ df["packet_length"] = np.log1p(df["packet_length"])
 df["inter_arrival_time"] = np.log1p(df["inter_arrival_time"])
 df["window"] = np.log1p(df["window"])
 df["ip_ttl"] = np.log1p(df["ip_ttl"])
-# !!! aplicar log a ip_tos también, (por eso sale el error reconsturccion 1400 en esos icmp)
+df["ip_tos"] = np.log1p(df["ip_tos"])
+
 df["h"] = df["h"]/(-math.log2(1/256))  # entropy/8.0
 
 with open(f"capture_times_labels{timestamp}.pickle", "wb") as f:
