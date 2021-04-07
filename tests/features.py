@@ -1,11 +1,11 @@
 import datetime
 import math
 import pickle
-from collections import Counter
 
 import numpy as np
 import pandas as pd
 
+from scipy import stats
 from scapy.all import *
 
 # cap = rdpcap("/media/sf_carpeta_compartida_vm/merlin-agent-1_eth0_to_Switch1_Ethernet5.pcap")
@@ -36,9 +36,9 @@ def port_ranges(port):  # !!! incrementar la clasificacion, jerarquias mas detal
         return "dynamic"
 
 
-def entropy(s):
-    p, lns = Counter(s), float(len(s))
-    return -sum( count/lns * math.log(count/lns, 2) for count in p.values())
+def entropy(x):
+    cnt = np.bincount(x, minlength=256)
+    return stats.entropy(cnt, base=2)
 
 pkts_features = []
 labels = []
@@ -111,7 +111,7 @@ for idx, pkt in enumerate(cap):
     else:
         features["inter_arrival_time"] = float(cap[idx].time - cap[idx-1].time)
 
-    features["h"] = entropy(raw(pkt).hex())
+    features["h"] = entropy(bytearray(raw(pkt)))
 
     if pkt.haslayer(IP):
         lyr = pkt.getlayer(IP)
@@ -168,6 +168,8 @@ df["inter_arrival_time"] = np.log1p(df["inter_arrival_time"])
 df["window"] = np.log1p(df["window"])
 df["ip_ttl"] = np.log1p(df["ip_ttl"])
 # !!! aplicar log a ip_tos también, (por eso sale el error reconsturccion 1400 en esos icmp)
+df["h"] = df["h"]/(-math.log2(1/256))  # entropy/8.0
+
 with open(f"capture_times_labels{timestamp}.pickle", "wb") as f:
     pickle.dump((times, labels), f)
 
