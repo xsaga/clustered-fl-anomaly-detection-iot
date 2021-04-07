@@ -10,6 +10,8 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import seaborn as sns
 
+import scipy
+
 from sklearn import metrics
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.decomposition import PCA
@@ -73,6 +75,8 @@ plt.show()
 z = torch.zeros(26)
 
 modelos_eval = np.array(list(map(lambda m: m(z).detach().numpy(), modelos)))
+
+# Pearson product-moment correlation
 corr = np.corrcoef(modelos_eval)
 
 # cmap = sns.diverging_palette(240,20,as_cmap=True)
@@ -92,6 +96,31 @@ silhouette_scores = []
 for n in num_clusters:
     clustering = AgglomerativeClustering(n_clusters=n).fit(corr)
     silhouette_scores.append(metrics.silhouette_score(corr, clustering.labels_))
+
+plt.plot(num_clusters, silhouette_scores)
+plt.show()
+
+# Spearman
+# spearman_corr = np.zeros(corr.shape)
+# for i in range(modelos_eval.shape[0]):
+#     for j in range(i, modelos_eval.shape[0]):
+#         spearman_corr[i, j] = scipy.stats.spearmanr(modelos_eval[i, :], modelos_eval[j, :])[0]
+#         spearman_corr[j, i] = spearman_corr[i, j]
+
+spearman_corr, pvalues = scipy.stats.spearmanr(modelos_eval, axis=1)
+
+sns.heatmap(spearman_corr, cmap=cmap, xticklabels=names, yticklabels=names, square=True, annot=True)
+plt.show()
+
+sns.clustermap(spearman_corr, cmap=cmap, xticklabels=names, yticklabels=names)
+plt.show()
+
+# select number of clusters
+num_clusters = list(range(2, spearman_corr.shape[0]))
+silhouette_scores = []
+for n in num_clusters:
+    clustering = AgglomerativeClustering(n_clusters=n).fit(spearman_corr)
+    silhouette_scores.append(metrics.silhouette_score(spearman_corr, clustering.labels_))
 
 plt.plot(num_clusters, silhouette_scores)
 plt.show()
