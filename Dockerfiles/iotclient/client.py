@@ -19,7 +19,8 @@ def on_disconnect(client, userdata, rc):
 
 config = {"MQTT_BROKER_ADDR": "localhost",
           "MQTT_TOPIC_PUB": "test/topic",
-          "SLEEP_TIME": 1}
+          "SLEEP_TIME": 1,
+          "SLEEP_TIME_SD": 0.1}
 
 for key in config.keys():
     try:
@@ -40,7 +41,9 @@ client.loop_start()
 
 while True:
     message = f"{random.gauss(10, 1):.2f}"
-    time.sleep(float(config["SLEEP_TIME"]))
+    sleep_time = random.gauss(float(config["SLEEP_TIME"]), float(config["SLEEP_TIME_SD"]))
+    sleep_time = float(config["SLEEP_TIME"]) if sleep_time < 0 else sleep_time
+    time.sleep(sleep_time)
 
     client.publish(topic=config["MQTT_TOPIC_PUB"], payload=message)
 
