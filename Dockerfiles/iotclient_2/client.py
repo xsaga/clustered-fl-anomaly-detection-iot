@@ -19,8 +19,15 @@ for key in config.keys():
 
 config["MQTT_TOPIC_PUB"] = config["MQTT_TOPIC_PUB"] + "/" + os.environ["HOSTNAME"]
 
+
+def proc_stat():
+    with open("/proc/stat", "r") as f:
+        content = f.read()
+    return content
+
 while True:
-    publish.single(topic=config["MQTT_TOPIC_PUB"], payload=f"{random.gauss(10, 1):.2f}", hostname=config["MQTT_BROKER_ADDR"])
+    message = f"/proc/stat:{proc_stat()}"
+    publish.single(topic=config["MQTT_TOPIC_PUB"], payload=message, hostname=config["MQTT_BROKER_ADDR"])
     sleep_time = random.gauss(float(config["SLEEP_TIME"]), float(config["SLEEP_TIME_SD"]))
     sleep_time = float(config["SLEEP_TIME"]) if sleep_time < 0 else sleep_time
     time.sleep(sleep_time)
