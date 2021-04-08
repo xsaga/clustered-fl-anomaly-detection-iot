@@ -9,7 +9,8 @@ import subprocess
 import time
 
 config = {"COAP_ADDR_LIST": "",
-          "SLEEP_TIME": 5}
+          "SLEEP_TIME": 5,
+          "SLEEP_TIME_SD": 0.1}
 
 for key in config.keys():
     try:
@@ -36,4 +37,6 @@ while True:
             print(e)
         print(f"Result stdout: {cmd_result.stdout}\nstderr: {cmd_result.stderr}")
 
-    time.sleep(float(config["SLEEP_TIME"]))
+    sleep_time = random.gauss(float(config["SLEEP_TIME"]), float(config["SLEEP_TIME_SD"]))
+    sleep_time = float(config["SLEEP_TIME"]) if sleep_time < 0 else sleep_time
+    time.sleep(sleep_time)
