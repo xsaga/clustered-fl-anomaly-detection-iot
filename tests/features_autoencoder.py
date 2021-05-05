@@ -1,8 +1,11 @@
 # script que une 'features.py' y 'autoencoder_test.py'
-
+# find . -name "*.pcap" -exec python3 features_autoencoder.py '{}' \;
 import datetime
 import math
 import pickle
+import sys
+
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -22,7 +25,9 @@ import seaborn as sns
 import pandas as pd
 
 input_capture_name = "mqtt1.pcap"
-output_model_name = "M1_1.pt"
+if len(sys.argv) > 1:
+    input_capture_name = sys.argv[1]
+output_model_name = f"{Path(input_capture_name).stem}.pt"
 
 cap = rdpcap(input_capture_name)
 
@@ -257,7 +262,7 @@ def fit(epochs, train_dl):
             opt.zero_grad()
 
             loss_acc += loss.item()
-        print(f"loss = {loss_acc/len(train_dl)}")
+        print(f"loss for model {output_model_name} = {loss_acc/len(train_dl)}")
 
 fit(num_epochs, train_dl)
 print("done")

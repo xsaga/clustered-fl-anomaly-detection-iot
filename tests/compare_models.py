@@ -90,6 +90,21 @@ plt.show()
 sns.clustermap(corr, cmap=cmap, xticklabels=names, yticklabels=names)
 plt.show()
 
+# avg
+corr_l = []
+for i in range(100):
+    z = torch.randn(26)
+    modelos_eval = np.array(list(map(lambda m: m(z).detach().numpy(), modelos)))
+    corr_l.append(np.corrcoef(modelos_eval))
+corr_l = np.array(corr_l)
+corr = corr_l.mean(axis=0)
+sns.heatmap(corr, cmap=cmap, xticklabels=names, yticklabels=names, square=True, annot=True)
+plt.show()
+
+sns.clustermap(corr, cmap=cmap, xticklabels=names, yticklabels=names)
+plt.show()
+# ####
+
 # select number of clusters
 num_clusters = list(range(2, corr.shape[0]))
 silhouette_scores = []
