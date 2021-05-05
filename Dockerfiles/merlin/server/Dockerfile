@@ -1,3 +1,4 @@
+# docker build --no-cache -t command-control-server .
 FROM ubuntu:focal
 
 RUN apt update && apt install -y --no-install-recommends \
@@ -11,6 +12,7 @@ RUN apt update && apt install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/merlin
+# seleccionar una version especifica (releases/tag/v1.0.0) en vez de usar latest
 RUN wget https://github.com/Ne0nd0g/merlin/releases/latest/download/merlinServer-Linux-x64.7z \
     && 7z x -pmerlin merlinServer-Linux-x64.7z
 RUN rm -rf data/bin/*
