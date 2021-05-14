@@ -11,5 +11,5 @@ WORKDIR /opt/merlin
 RUN wget https://github.com/Ne0nd0g/merlin/releases/latest/download/merlinAgent-Linux-x64.7z \
     && 7z x -pmerlin merlinAgent-Linux-x64.7z
 
-FROM iot-client:latest
+FROM mqtt-device-t1:latest
 COPY --from=0 /opt/merlin/merlinAgent-Linux-x64 /opt/merlin/merlinAgent-Linux-x64
