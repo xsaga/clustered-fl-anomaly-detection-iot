@@ -55,6 +55,22 @@ for model_path in model_paths:
 
 pesos = np.array(pesos)
 
+# ---> USANDO TODOS LOS PESOS DEL MODELO <---
+#In [22]: modelos = []
+#    ...: pesos = []
+#    ...: names = []
+#    ...: for model_path in model_paths:
+#    ...:     m = Autoencoder()
+#    ...:     m.load_state_dict(torch.load(model_path))
+#    ...:     modelos.append(m)
+#    ...:     ww = [v.detach().numpy().flatten() for v in m.state_dict().values()]
+#    ...:     ww = np.concatenate(ww)
+#    ...:     pesos.append(ww)
+#    ...:     names.append(Path(model_path).stem)
+#    ...: 
+#    ...: pesos = np.array(pesos)
+
+
 pca = PCA(n_components=2)
 pca.fit(pesos)
 
