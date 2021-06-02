@@ -12,9 +12,10 @@ import seaborn as sns
 
 import scipy
 
-from sklearn import metrics
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+
 
 class Autoencoder(nn.Module):
     def __init__(self):
@@ -50,27 +51,32 @@ for model_path in model_paths:
     m = Autoencoder()
     m.load_state_dict(torch.load(model_path))
     modelos.append(m)
-    pesos.append(m.decoder[2].weight.flatten().detach().numpy())
+    all_weights = np.concatenate([v.detach().numpy().flatten() for v in m.state_dict().values()])
+    pesos.append(all_weights)
+    # pesos.append(m.decoder[2].weight.flatten().detach().numpy())
     names.append(Path(model_path).stem)
 
 pesos = np.array(pesos)
 
-# ---> USANDO TODOS LOS PESOS DEL MODELO <---
-#In [22]: modelos = []
-#    ...: pesos = []
-#    ...: names = []
-#    ...: for model_path in model_paths:
-#    ...:     m = Autoencoder()
-#    ...:     m.load_state_dict(torch.load(model_path))
-#    ...:     modelos.append(m)
-#    ...:     ww = [v.detach().numpy().flatten() for v in m.state_dict().values()]
-#    ...:     ww = np.concatenate(ww)
-#    ...:     pesos.append(ww)
-#    ...:     names.append(Path(model_path).stem)
-#    ...: 
-#    ...: pesos = np.array(pesos)
+
+# cluster
+cluster_numbers = list(range(2, min(10, pesos.shape[0]-1)))
+score_ss = []
+score_db = []
+for n_clusters in cluster_numbers:
+    kmeans = KMeans(n_clusters=n_clusters, init="k-means++").fit(pesos)
+    kmeans_labels = kmeans.labels_
+    # davies_bouldin_score :: parece que sale mejor con davies_bouldin
+    # silhouette_score
+    score_ss.append(silhouette_score(pesos, kmeans_labels))
+    score_db.append(davies_bouldin_score(pesos, kmeans_labels))
+
+plt.plot(cluster_numbers, score_ss)
+plt.plot(cluster_numbers, score_db)
+plt.show()
 
 
+# pca
 pca = PCA(n_components=2)
 pca.fit(pesos)
 
@@ -126,7 +132,7 @@ num_clusters = list(range(2, corr.shape[0]))
 silhouette_scores = []
 for n in num_clusters:
     clustering = AgglomerativeClustering(n_clusters=n).fit(corr)
-    silhouette_scores.append(metrics.silhouette_score(corr, clustering.labels_))
+    silhouette_scores.append(silhouette_score(corr, clustering.labels_))
 
 plt.plot(num_clusters, silhouette_scores)
 plt.show()
@@ -151,7 +157,7 @@ num_clusters = list(range(2, spearman_corr.shape[0]))
 silhouette_scores = []
 for n in num_clusters:
     clustering = AgglomerativeClustering(n_clusters=n).fit(spearman_corr)
-    silhouette_scores.append(metrics.silhouette_score(spearman_corr, clustering.labels_))
+    silhouette_scores.append(silhouette_score(spearman_corr, clustering.labels_))
 
 plt.plot(num_clusters, silhouette_scores)
 plt.show()
