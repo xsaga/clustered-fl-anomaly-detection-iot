@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import hashlib
+import os
 from typing import List, Tuple, Optional, Dict, Union
 import flwr as fl
 from flwr.common import Parameters, Scalar, FitRes, parameters_to_weights, weights_to_parameters
@@ -61,6 +62,17 @@ class CustomStrategy(FedAvg):
 
 
 model = Autoencoder()
+
+initial_random_model_path = "initial_random_model.pt"
+if os.path.isfile(initial_random_model_path):
+    # load initial random model
+    model.load_state_dict(torch.load(initial_random_model_path), strict=True)
+    print(f"Loaded initial model {initial_random_model_path}")
+else:
+    # save initial random model
+    torch.save(model.state_dict(), initial_random_model_path)
+    print(f"Saved initial model {initial_random_model_path}")
+
 init_weights = [val.cpu().numpy() for val in model.state_dict().values()]
 
 configuration = {"num_rounds": 1}
@@ -72,5 +84,5 @@ strategy = CustomStrategy(fraction_fit=0.1,
                           min_available_clients=2,
                           initial_parameters=weights_to_parameters(init_weights))
 
-print("Init model hash: ", state_dict_hash(model.state_dict()))
+print("Initial model hash: ", state_dict_hash(model.state_dict()))
 fl.server.start_server("127.0.0.1:8080", config=configuration, strategy=strategy)
