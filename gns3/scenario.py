@@ -190,6 +190,18 @@ def start_all_switches(server: Server, project: Project, switches_pattern : Patt
             print("OK")
             time.sleep(0.3)
 
+
+def stop_all_switches(server: Server, project: Project, switches_pattern : Pattern=re.compile("openvswitch.*", re.IGNORECASE)) -> None:
+    switches = get_nodes_id_by_name_regexp(server, project, switches_pattern)
+    if switches:
+        print(f"found {len(switches)} switches")
+        for sw in switches:
+            print(f"Stopping {sw.name}... ", end="", flush=True)
+            stop_node(server, project, sw.id)
+            print("OK")
+            time.sleep(0.3)
+
+
 def start_capture_all_iot_links(server, project, switches_pattern: Pattern=re.compile("openvswitch.*", re.IGNORECASE), iot_pattern: Pattern=re.compile("mqtt-device.*|coap-device.*", re.IGNORECASE)) -> None:
     switches = get_nodes_id_by_name_regexp(server, project, switches_pattern)
     if switches:
@@ -202,6 +214,24 @@ def start_capture_all_iot_links(server, project, switches_pattern: Pattern=re.co
                 for lk in links:
                     print(f"\t Starting capture in link {lk.name}... ", end="", flush=True)
                     start_capture(server, project, [lk.id])
+                    print("OK")
+            else:
+                print("0 links, skipping.")
+        time.sleep(0.3)
+
+
+def stop_capture_all_iot_links(server, project, switches_pattern: Pattern=re.compile("openvswitch.*", re.IGNORECASE), iot_pattern: Pattern=re.compile("mqtt-device.*|coap-device.*", re.IGNORECASE)) -> None:
+    switches = get_nodes_id_by_name_regexp(server, project, switches_pattern)
+    if switches:
+        print(f"found {len(switches)} switches")
+        for sw in switches:
+            print(f"Finding links in switch {sw.name}... ", end="", flush=True)
+            links = get_links_id_from_node_connected_to_name_regexp(server, project, sw.id, iot_pattern)
+            if links:
+                print(f"{len(links)} found")
+                for lk in links:
+                    print(f"\t Stopping capture in link {lk.name}... ", end="", flush=True)
+                    stop_capture(server, project, [lk.id])
                     print("OK")
             else:
                 print("0 links, skipping.")
@@ -276,3 +306,10 @@ start_capture(server, project, cluster_coap1["devices_link_id"])
 
 # get_nodes_id_by_name_regexp(server, project, re.compile("openvswitch.*", re.IGNORECASE))
 # get_links_id_from_node_connected_to_name_regexp(server, project, '4a2a6591-7b87-4c8d-948f-50eed4cd2c61', re.compile("mqtt-device-t1.*", re.IGNORECASE))
+
+# --------------------------------------------
+# start_all_switches(server, project)
+# click play button in GNS3 |>
+# check coap cloud
+# start_capture_all_iot_links(server, project)
+# stop_capture_all_iot_links(server, project)
