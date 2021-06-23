@@ -6,6 +6,7 @@ requests
 scapy
 scikit-learn
 scipy
+s-dbw
 seaborn
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
