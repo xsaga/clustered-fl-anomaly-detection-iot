@@ -43,13 +43,24 @@ def make_sequences(data, sequence_len):
     return torch.stack(data_seq_x, dim=0), torch.stack(data_seq_y, dim=0)
 
 
-def load_data(pcap_filename):
-    df = pcap_to_dataframe(pcap_filename)
-    df = preprocess_dataframe(df)
-    df = df.drop(columns=["timestamp"])
-    df_train, df_valid, _ = split_train_valid_eval(df, train_size=0.8)
-    X_train = torch.from_numpy(df_train.to_numpy(dtype=np.float32))
-    X_valid = torch.from_numpy(df_valid.to_numpy(dtype=np.float32))
+def load_data(pcap_filename, cache_tensors=False):
+    cache_filename = Path(pcap_filename + "_cache_tensors.pt")
+    if cache_tensors and cache_filename.is_file():
+        print("loading data from cache: ", cache_filename)
+        serialize_tensors = torch.load(cache_filename)
+        X_train = serialize_tensors["X_train"]
+        X_valid = serialize_tensors["X_valid"]
+    else:
+        df = pcap_to_dataframe(pcap_filename)
+        df = preprocess_dataframe(df)
+        df = df.drop(columns=["timestamp"])
+        df_train, df_valid, _ = split_train_valid_eval(df, train_size=0.8)
+        X_train = torch.from_numpy(df_train.to_numpy(dtype=np.float32))
+        X_valid = torch.from_numpy(df_valid.to_numpy(dtype=np.float32))
+        if cache_tensors:
+            serialize_tensors = {"X_train": X_train, "X_valid": X_valid}
+            torch.save(serialize_tensors, cache_filename)
+
     seq_len = 25
     train_x, train_y = make_sequences(X_train, seq_len)
     valid_x, valid_y = make_sequences(X_valid, seq_len)
