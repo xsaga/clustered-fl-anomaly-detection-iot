@@ -28,13 +28,11 @@ class LSTMchar(nn.Module):
         super(LSTMchar, self).__init__()
         self.start_dim = 27
 
-        self.lstm = nn.LSTM(self.start_dim, 128)
-        self.linear = nn.Linear(128, self.start_dim)
-        self.activ = nn.Softmax(dim=2)  # nn.ReLU()
+        self.lstm = nn.LSTM(self.start_dim, 64, 2)
+        self.linear = nn.Linear(64, self.start_dim)
 
     def forward(self, x):
         out, (h, c) = self.lstm(x)
-        out = self.activ(out)
         out = self.linear(out)
         return out
 

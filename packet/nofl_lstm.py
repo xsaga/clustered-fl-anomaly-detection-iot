@@ -1,3 +1,4 @@
+# testear arquitectura y params
 from feature_extractor import pcap_to_dataframe, preprocess_dataframe
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
@@ -14,6 +15,8 @@ from torch import optim
 from torch.utils.data import DataLoader, TensorDataset
 
 from sklearn.model_selection import train_test_split
+from matplotlib import pyplot as plt
+import seaborn as sns
 
 
 def state_dict_hash(state_dict: Union['OrderedDict[str, torch.Tensor]', Dict[str, torch.Tensor]]) -> str:
@@ -43,14 +46,13 @@ def make_sequences(data, sequence_len):
     return torch.stack(data_seq_x, dim=0), torch.stack(data_seq_y, dim=0)
 
 
-def load_data(pcap_filename):
+def load_data(pcap_filename, seq_len=10):
     df = pcap_to_dataframe(pcap_filename)
     df = preprocess_dataframe(df)
     df = df.drop(columns=["timestamp"])
     df_train, df_valid, _ = split_train_valid_eval(df, train_size=0.8)
     X_train = torch.from_numpy(df_train.to_numpy(dtype=np.float32))
     X_valid = torch.from_numpy(df_valid.to_numpy(dtype=np.float32))
-    seq_len = 25
     train_x, train_y = make_sequences(X_train, seq_len)
     valid_x, valid_y = make_sequences(X_valid, seq_len)
     bs = 32
@@ -75,9 +77,12 @@ class LSTMchar(nn.Module):
         return out
 
 
-def fit(model, optimizer, loss_function, epochs, train_generator):
-    model.train()
+def fit(model, optimizer, loss_function, epochs, train_generator, valid_generator):
+    epoch_list = []
+    loss_list = []
+    valid_loss_list = []
     for epoch in range(epochs):
+        model.train()
         train_loss_acc = 0.0
         for x_batch, y_batch in train_generator:
             x_batch = x_batch.transpose(0, 1)
@@ -93,7 +98,10 @@ def fit(model, optimizer, loss_function, epochs, train_generator):
             optimizer.zero_grad()
         
         print(f"epoch {epoch+1}/{epochs}: train loss {train_loss_acc/len(train_generator):.8f}")
-    return train_loss_acc/len(train_generator)  # type: ignore
+        epoch_list.append(epoch)
+        loss_list.append(train_loss_acc/len(train_generator))
+        valid_loss_list.append(test(model, loss_func, valid_generator))
+    return epoch_list, loss_list, valid_loss_list
 
 
 def test(model, loss_function, valid_generator):
@@ -109,56 +117,60 @@ def test(model, loss_function, valid_generator):
     return valid_loss_acc/len(valid_generator)
 
 
-local_models_dir_path = Path("./models_local")
-global_models_dir_path = Path("./models_global")
+def prediction_error(model, loss_func, samples_x, samples_y):
+    with torch.no_grad():
+        model.eval()
+        samples_x = samples_x.transpose(0, 1)
+        samples_y = samples_y.transpose(0, 1)
+        pred = model(samples_x)
+        future = pred[-1, :, :]
+        target = samples_y[-1, :, :]
+        results = torch.mean(loss_func(future, target, reduction="none"), dim=1)
+    return results
 
-global_round_dirs = [p for p in global_models_dir_path.iterdir() if p.is_dir() and p.match("round_*")]
-global_round_dirs = sorted(global_round_dirs, key=lambda p: int(p.stem.rsplit("_", 1)[-1]))
 
-if not global_round_dirs:
-    print("No global models found.")
-    sys.exit(0)
 
-recent_global_round_dir = global_round_dirs[-1]
-current_local_round_dir = local_models_dir_path / recent_global_round_dir.name
-current_local_round_dir.mkdir(exist_ok=True)
-
-current_round = int(current_local_round_dir.name.rsplit("_", 1)[-1])
-
-model = LSTMchar()
-torch.set_num_threads(1)
-
-global_model_path = [p for p in recent_global_round_dir.iterdir() if p.is_file() and p.match("global_model_round_*.tar")]
-assert len(global_model_path) == 1
-global_model_path = global_model_path[0]
-
-global_checkpoint = torch.load(global_model_path)
-assert global_checkpoint["model_hash"] == state_dict_hash(global_checkpoint["state_dict"])
-model.load_state_dict(global_checkpoint["state_dict"], strict=True)
-
-print(f"Starting with global model {state_dict_hash(model.state_dict())} at {global_model_path}. FL round {current_round}.")
-
-pcap_filename = sys.argv[1]
+pcap_filename = "mqtt-device-t2_reducido.pcap"
 print(f"Loading data {pcap_filename}...")
-train_dl, valid_dl = load_data(pcap_filename)
+seq_len = 25
+train_dl, valid_dl = load_data(pcap_filename, seq_len)
 
-num_epochs = int(global_checkpoint["local_epochs"])
+df = pcap_to_dataframe(pcap_filename)
+df = preprocess_dataframe(df)
+timestamps = df["timestamp"].values
+df = df.drop(columns=["timestamp"])
+
+
+torch.set_num_threads(2)
+
+num_epochs = 50
+model = LSTMchar()
 opt = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-7)
 loss_func = F.mse_loss
 
+s = 0
+for k,v in model.state_dict().items():
+    s += torch.numel(v)*4
+print(s)
+
 # train
 print(f"Training for {num_epochs} epochs in {pcap_filename}, number of samples {len(train_dl)}.")
-train_loss = fit(model, optimizer=opt, loss_function=loss_func, epochs=num_epochs, train_generator=train_dl)
+epoch_l, loss_l, valid_loss_l = fit(model, optimizer=opt, loss_function=loss_func, epochs=num_epochs, train_generator=train_dl, valid_generator=valid_dl)
+plt.plot(epoch_l, loss_l, marker="o", label="train loss")
+plt.plot(epoch_l, valid_loss_l, marker="o", label="valid loss")
+plt.legend()
+plt.show()
+# np.savez(f"results_nofl_epoch_losses_lstm_{Path(pcap_filename).stem}.npz", np.array(epoch_l), np.array(loss_l), np.array(valid_loss_l))
 
-# eval
-valid_loss = test(model, loss_func, valid_dl)
 
-model_savefile = current_local_round_dir / f"{Path(pcap_filename).stem}_round{current_round}_epochs{num_epochs}.tar"
-checkpoint = {"state_dict": model.state_dict(),
-              "model_hash": state_dict_hash(model.state_dict()),
-              "local_epochs": num_epochs,
-              "loss": valid_loss,
-              "train_loss": train_loss,
-              "num_samples": len(train_dl)}
-torch.save(checkpoint, model_savefile)
-print(f"Saved model in {model_savefile} with hash {checkpoint['model_hash']}")
+results = prediction_error(model, loss_func, *make_sequences(torch.from_numpy(df.to_numpy(dtype=np.float32)), seq_len))
+
+results_df = pd.DataFrame({"ts":timestamps[seq_len:], "rec_err":results})
+sns.scatterplot(data=results_df, x="ts", y="rec_err", linewidth=0, alpha=0.4)
+plt.show()
+
+
+results_eval = prediction_error(model, loss_func, *make_sequences(torch.from_numpy(df_eval.to_numpy(dtype=np.float32)), seq_len))
+results_df = pd.DataFrame({"ts":timestamps_eval[seq_len:], "rec_err":results_eval})
+sns.scatterplot(data=results_df, x="ts", y="rec_err", linewidth=0, alpha=0.4)
+plt.show()

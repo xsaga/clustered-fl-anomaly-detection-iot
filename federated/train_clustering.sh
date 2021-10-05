@@ -8,6 +8,6 @@ echo $(ls *.pcap | wc -l) training files found.
 
 date '+%s' > start.timestamp
 
-parallel --dry-run --verbose --bar --ungroup --jobs 8 python {1} {2} {3} ::: client_cluster_ae.py client_cluster_lstm.py ::: *.pcap ::: 1 2 4 8 16 32
+parallel --verbose --bar --ungroup --jobs 32 python {1} {2} {3} ::: client_cluster_ae.py client_cluster_lstm.py ::: *.pcap ::: 1 2 4 8 16 32
 
 date '+%s' > end.timestamp

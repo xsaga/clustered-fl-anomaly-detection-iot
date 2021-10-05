@@ -1,3 +1,4 @@
+from feature_extractor import pcap_to_dataframe, preprocess_dataframe
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Union
 from pathlib import Path
@@ -45,6 +46,17 @@ class Autoencoder(nn.Module):
         latent = self.encoder(x)
         decoded = self.decoder(latent)
         return decoded
+
+
+def test(model, loss_function, valid_generator):
+    valid_loss_acc = 0.0
+    with torch.no_grad():
+        model.eval()
+        for x_batch in valid_generator:
+            preds = model(x_batch)
+            valid_loss_acc += loss_function(preds, x_batch).item()
+    print(f"valid loss {valid_loss_acc/len(valid_generator):.8f}")
+    return valid_loss_acc/len(valid_generator)
 
 
 def fedavg(model_weights: List[List[torch.Tensor]], num_training_samples: List[int]) -> List[torch.Tensor]:
@@ -106,10 +118,22 @@ print(f"Found {len(recent_local_round_models)} local models.")
 if not recent_local_round_models:
     sys.exit(0)
 
+# load eval dataset
+eval_pcap_filename = "./eval/eval.pcap"
+print(f"Loading evaluation data {eval_pcap_filename}...")
+
+eval_df = pcap_to_dataframe(eval_pcap_filename)
+eval_df = preprocess_dataframe(eval_df)
+eval_df = eval_df.drop(columns=["timestamp"])
+X_eval = torch.from_numpy(eval_df.to_numpy(dtype=np.float32))
+eval_dl = DataLoader(X_eval, batch_size=32, shuffle=False)
+
+
 all_models = []
 all_training_samples = []
 all_loss = []
 all_train_loss = []
+all_local_model_loss_eval_dataset = []
 for model_path in recent_local_round_models:
     chkpt = torch.load(model_path)
     assert chkpt["model_hash"] == state_dict_hash(chkpt["state_dict"])
@@ -119,9 +143,19 @@ for model_path in recent_local_round_models:
     all_loss.append(chkpt["loss"])
     all_train_loss.append(chkpt["train_loss"])
 
+    # eval dataset loss
+    local_model = Autoencoder()
+    local_model.load_state_dict(chkpt["state_dict"])
+    local_model_loss_valid_dataset = test(local_model, F.mse_loss, eval_dl)
+    all_local_model_loss_eval_dataset.append(local_model_loss_valid_dataset)
+
 new_global_model = fedavg(all_models, all_training_samples)
 avg_loss = average_weighted_loss(all_loss, all_training_samples)
 global_model.load_state_dict(OrderedDict(zip(global_model.state_dict().keys(), new_global_model)))
+
+# eval dataset loss
+global_model_loss_eval_dataset = test(global_model, F.mse_loss, eval_dl)
+
 new_checkpoint = {"state_dict": global_model.state_dict(),
                   "model_hash": state_dict_hash(global_model.state_dict()),
                   "local_epochs": LOCAL_EPOCHS,

@@ -1,0 +1,89 @@
+list_bins = []
+
+with open("results_binning_quantile.txt", "w") as o:
+    for f in pcaps:
+        print(f.name)
+        df = pcap_to_dataframe(f.name)
+        discr = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(df["dport"].values.reshape(-1,1))
+        print(discr.bin_edges_)
+        list_bins.append(discr.bin_edges_)
+        o.write(f"{f.name}: {discr.bin_edges_}\n")
+        print("------------\n")
+
+
+bins_all_array = np.concatenate(list_bins).astype(int)
+v,c = np.unique(bins_all_array[bins_all_array>1024], return_counts=True)
+bins_gt1024_selected = v[c>2]
+
+selected_bins = np.concatenate([bins_all_array[bins_all_array<=1024], bins_gt1024_selected])
+
+# bins_uniq = np.unique(np.sort(bins_all_array))
+bins_uniq = np.unique(np.sort(selected_bins))
+
+# igual no hace falta el astype int
+bins_centered = np.mean(np.vstack([bins_uniq[:-1], bins_uniq[1:]]), axis=0)
+
+# y poner 0 al principio de los bins y np.inf (o 2**16) al final
+# pd.cut(x, bins=bins)
+# pd.get_dummies()
+bins=discr.bin_edges_[0]
+
+bins=np.insert(bins, 0, -1)
+bins=np.append(bins, 2**16)
+pd.cut(df["dport"].values, bins=bins).value_counts().plot(kind="bar", rot=0)
+
+
+
+In [329]: list_cuts = []
+     ...: with open("results_binning_quantile.txt", "w") as o:
+     ...:     for i,f in enumerate(pcaps):
+     ...:         print(i, f.name)
+     ...:         df = pcap_to_dataframe(f.name)
+     ...:         dport = df["dport"]
+     ...:         list_cuts.append(pd.cut(dport.values, bins=bins))
+
+list_cuts_series = [ pd.Series(x) for x in list_cuts ]
+todos = pd.concat(list_cuts_series)
+todos.value_counts(sort=False).plot(kind="bar", rot=60); plt.show()
+
+
+
+In [386]: list_dport = []
+          list_sport = []
+     ...: for i,f in enumerate(pcaps):
+     ...:     print(i, f.name)
+     ...:     df = pcap_to_dataframe(f.name)
+     ...:     dport = df["dport"]
+              sport = df["sport"]
+     ...:     list_dport.append(dport)
+              list_sport.append(sport)
+
+list_dport_count_raw = [x.value_counts(normalize=False).sort_index() for x in list_dport]
+list_dport_count_norm = [x.value_counts(normalize=True).sort_index() for x in list_dport]
+
+todos_count_raw = list_dport_count_raw[0]
+for ps in list_dport_count_raw[1:]:
+    todos_count_raw = todos_count_raw.add(ps, fill_value=0)
+
+todos_count_norm = list_dport_count_norm[0]
+for ps in list_dport_count_norm[1:]:
+    todos_count_norm = todos_count_norm.add(ps, fill_value=0)
+# todos_count.sum() == N(pcaps)
+
+todos_count_raw.plot(kind="bar", rot=45); plt.show()
+todos_count_norm.plot(kind="bar", rot=45); plt.show()
+# pero los count no se pueden binear así ...
+# igual, se puede muestrear basado en los count y discretizar el muestreo.?
+# pd.Series(np.random.choice(todos_count_norm.index.values, size=1000000, p=todos_count_norm.values)).value_counts(normalize=True).sort_index()
+
+
+list_dport_all = pd.concat(list_dport)
+discr = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(list_dport_all.values.reshape(-1,1))
+In [435]: bins=discr.bin_edges_[0]
+     ...: 
+     ...: bins=np.insert(bins, 0, -1)
+     ...: bins=np.append(bins, 2**16)  # o sustutuir el ultimo por 2**16.
+# dport array([   -1.,     0.,   443.,  1883., 35544., 40472., 46456., 48752., 54893., 65529., 65536.])
+# dport array([   -1.,     0.,   443.,  1883., 35544., 40472., 46456., 48752., 54893., 65536.])
+# sport 
+pd.cut(list_dport_all.values, bins=np.unique(np.sort(selected_bins))).value_counts().plot(kind="bar", rot=40); plt.show()

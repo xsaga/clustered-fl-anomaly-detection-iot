@@ -7,6 +7,7 @@ import torch.nn as nn
 
 from pathlib import Path
 
+from matplotlib import rcParams
 from matplotlib import pyplot as plt
 import matplotlib.lines as mlines
 import seaborn as sns
@@ -18,6 +19,8 @@ from s_dbw import S_Dbw
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+
+rcParams["font.family"] = ["Latin Modern Math"]
 
 # no no no
 def select_best_cluster_idx(score: np.ndarray, significant=None, best=np.max, arg_best=np.argmax, worst=np.min, arg_worst=np.argmin) -> int:
@@ -69,6 +72,7 @@ class Autoencoder(nn.Module):
         decoded = self.decoder(latent)
         return decoded
 
+# load
 paths_glob_pattern = "./*.pt"
 model_paths = glob.glob(paths_glob_pattern)
 print(f"found {len(model_paths)} models")
@@ -111,15 +115,15 @@ for n_clusters in cluster_numbers:
     score_db.append(davies_bouldin_score(pesos_reducido, kmeans.labels_))
     score_sdbw.append(S_Dbw(pesos_reducido, kmeans.labels_, centers_id=None, method="Tong", centr="mean", metric="euclidean"))
 
-plt.plot(cluster_numbers, score_ss, label="silhouette")
-plt.plot(cluster_numbers, score_ch, label="calinski-harabasz")
-plt.plot(cluster_numbers, score_db, label="davies-bouldin")
-plt.plot(cluster_numbers, score_sdbw, label="S_Dbw")
+plt.plot(cluster_numbers, score_ss, label="silhouette MAX")
+plt.plot(cluster_numbers, score_ch, label="calinski-harabasz MAX")
+plt.plot(cluster_numbers, score_db, label="davies-bouldin MIN")
+plt.plot(cluster_numbers, score_sdbw, label="S_Dbw MIN")
 plt.legend()
 plt.title(f"Cluster analysis for {paths_glob_pattern}")
 plt.show()
 
-best_n_clusters = 5
+best_n_clusters = 4
 
 # pca
 pca = PCA(n_components=2)
@@ -131,9 +135,9 @@ fig, ax = plt.subplots()
 # ax.scatter(reducido[:, 0], reducido[:, 1], c=kmeans_labels[best_n_clusters], alpha=0.3)
 colormin = np.min(kmeans_labels[best_n_clusters])
 colormax = np.max(kmeans_labels[best_n_clusters])
-ax.scatter(reducido[tags=="coap-t1", 0], reducido[tags=="coap-t1", 1], marker="o", s=42, cmap="hsv", c=kmeans_labels[best_n_clusters][tags=="coap-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="coap-t1")
-ax.scatter(reducido[tags=="mqtt-t1", 0], reducido[tags=="mqtt-t1", 1], marker="s", s=42, cmap="hsv", c=kmeans_labels[best_n_clusters][tags=="mqtt-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t1")
-ax.scatter(reducido[tags=="mqtt-t2", 0], reducido[tags=="mqtt-t2", 1], marker="^", s=42, cmap="hsv", c=kmeans_labels[best_n_clusters][tags=="mqtt-t2"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t2")
+ax.scatter(reducido[tags=="coap-t1", 0], reducido[tags=="coap-t1", 1], marker="o", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="coap-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="coap-t1")
+ax.scatter(reducido[tags=="mqtt-t1", 0], reducido[tags=="mqtt-t1", 1], marker="s", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="mqtt-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t1")
+ax.scatter(reducido[tags=="mqtt-t2", 0], reducido[tags=="mqtt-t2", 1], marker="^", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="mqtt-t2"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t2")
 
 # for i, n in enumerate(names):
     # ax.annotate(n, (reducido[i, 0], reducido[i, 1])).set_alpha(0.3)
@@ -230,3 +234,5 @@ for n in num_clusters:
 
 plt.plot(num_clusters, silhouette_scores)
 plt.show()
+
+#  https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html#sphx-glr-auto-examples-cluster-plot-agglomerative-dendrogram-py
