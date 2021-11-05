@@ -34,7 +34,7 @@ def split_train_valid_eval(df :pd.DataFrame, eval_split=None, train_size=0.8):
         return df_train, df_valid, None
 
 
-def load_data(pcap_filename, cache_tensors=False):
+def load_data(pcap_filename, cache_tensors=True):
     cache_filename = Path(pcap_filename + "_cache_tensors.pt")
     if cache_tensors and cache_filename.is_file():
         print("loading data from cache: ", cache_filename)

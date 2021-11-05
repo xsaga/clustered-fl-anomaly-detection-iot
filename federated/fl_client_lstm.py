@@ -43,7 +43,7 @@ def make_sequences(data, sequence_len):
     return torch.stack(data_seq_x, dim=0), torch.stack(data_seq_y, dim=0)
 
 
-def load_data(pcap_filename, cache_tensors=False):
+def load_data(pcap_filename, cache_tensors=True):
     cache_filename = Path(pcap_filename + "_cache_tensors.pt")
     if cache_tensors and cache_filename.is_file():
         print("loading data from cache: ", cache_filename)
