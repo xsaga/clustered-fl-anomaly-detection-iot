@@ -53,16 +53,16 @@ class Autoencoder(nn.Module):
     def __init__(self):
         super(Autoencoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(27, 12), # 26,12
+            nn.Linear(34, 17), # 26,12
             # nn.Dropout(0.05), # !
             nn.ReLU(), # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(12, 4), # 12,4
+            nn.Linear(17, 8), # 12,4
             nn.ReLU()  # nn.Sigmoid() # nn.Tanh(), nn.Sigmoid(), nn.ReLU()
         )
         self.decoder = nn.Sequential(
-            nn.Linear(4, 12), # 4,12
+            nn.Linear(8, 17), # 4,12
             nn.ReLU(), # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(12, 27), # 12,26
+            nn.Linear(17, 34), # 12,26
             # nn.Dropout(0.05), # !
             nn.ReLU() # nn.ReLU()
         )
