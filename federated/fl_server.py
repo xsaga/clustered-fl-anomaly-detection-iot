@@ -1,6 +1,6 @@
 from feature_extractor import pcap_to_dataframe, preprocess_dataframe
 from collections import OrderedDict
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Any
 from pathlib import Path
 import hashlib
 import sys
@@ -60,6 +60,7 @@ def test(model, loss_function, valid_generator):
 
 
 def fedavg(model_weights: List[List[torch.Tensor]], num_training_samples: List[int]) -> List[torch.Tensor]:
+    assert len(model_weights) == len(num_training_samples)
     new_weights = []
     total_training_samples = sum(num_training_samples)
     for layers in zip(*model_weights):
@@ -69,10 +70,42 @@ def fedavg(model_weights: List[List[torch.Tensor]], num_training_samples: List[i
     return new_weights
 
 
+# FedOpt
+def delta_updates(model_weights: List[List[torch.Tensor]], num_training_samples: List[int], previous_model: List[torch.Tensor]) -> List[torch.Tensor]:
+    # model_weights : list of models : list of list of tensors
+    avg_model_weights = fedavg(model_weights, num_training_samples)
+    delta = []
+    for i in range(len(avg_model_weights)):
+        delta.append(avg_model_weights[i] - previous_model[i])
+    return delta
+
+
+def serveropt(optimizer_state, model_weights: List[List[torch.Tensor]], num_training_samples: List[int], previous_model: List[torch.Tensor]) -> Tuple[List[torch.Tensor], Any]:
+    prev_model = [t.detach().clone() for t in previous_model]
+    pseudogradient = [torch.neg(t) for t in delta_updates(model_weights, num_training_samples, prev_model)]
+    
+    params = [t.requires_grad_(True) for t in prev_model]
+    
+    opt = optim.SGD(params, lr=1)
+    if optimizer_state:
+        opt.load_state_dict(optimizer_state)
+        print("Loaded serveropt optimizator state")
+
+    for i, param in enumerate(params):
+        param.grad = pseudogradient[i]
+    opt.step()
+    
+    return [t.detach().clone() for t in params], opt.state_dict()
+
+
 def average_weighted_loss(model_losses: List[float], num_training_samples: List[int]) -> float:
     weighted_losses = [l*n for l, n in zip(model_losses, num_training_samples)]
     return sum(weighted_losses)/sum(num_training_samples)
 
+
+# seed
+torch.manual_seed(0)
+np.random.seed(0)
 
 local_models_dir_path = Path("./models_local")
 global_models_dir_path = Path("./models_global")
@@ -122,10 +155,15 @@ if not recent_local_round_models:
 eval_pcap_filename = "./eval/eval.pcap"
 print(f"Loading evaluation data {eval_pcap_filename}...")
 
-eval_df = pcap_to_dataframe(eval_pcap_filename)
-eval_df = preprocess_dataframe(eval_df)
-eval_df = eval_df.drop(columns=["timestamp"])
-X_eval = torch.from_numpy(eval_df.to_numpy(dtype=np.float32))
+try:
+    X_eval = torch.load(eval_pcap_filename+".pt")
+except FileNotFoundError:  
+    eval_df = pcap_to_dataframe(eval_pcap_filename)
+    eval_df = preprocess_dataframe(eval_df)
+    eval_df = eval_df.drop(columns=["timestamp"])
+    X_eval = torch.from_numpy(eval_df.to_numpy(dtype=np.float32))
+    torch.save(X_eval, eval_pcap_filename+".pt")
+
 eval_dl = DataLoader(X_eval, batch_size=32, shuffle=False)
 
 
@@ -149,7 +187,30 @@ for model_path in recent_local_round_models:
     local_model_loss_valid_dataset = test(local_model, F.mse_loss, eval_dl)
     all_local_model_loss_eval_dataset.append(local_model_loss_valid_dataset)
 
-new_global_model = fedavg(all_models, all_training_samples)
+# Server optimization
+new_global_model_fedavg = fedavg(all_models, all_training_samples)
+# --- fedopt ---
+# load previous step global model
+prev_step_global_model_path = global_models_dir_path / f"round_{current_fl_round-1}" / f"global_model_round_{current_fl_round-1}.tar"
+prev_step_chkpt = torch.load(prev_step_global_model_path)
+print("PREVIOUS STEP GLOBAL MODEL HASH: ", prev_step_chkpt["model_hash"])
+
+# load serveropt optim state
+try:
+    serveropt_optim_state = torch.load(global_models_dir_path / "optim_state.pt")
+    print("Deserializing serveropt optimizator state")
+except FileNotFoundError:
+    serveropt_optim_state = None
+
+new_global_model, serveropt_optim_state = serveropt(serveropt_optim_state, all_models, all_training_samples, list(prev_step_chkpt["state_dict"].values()))
+
+# save serveropt optim state
+torch.save(serveropt_optim_state, global_models_dir_path / "optim_state.pt")
+
+# checks
+for i in range(len(new_global_model)):
+    print("SERVEROPT == FEDAVG ?", torch.allclose(new_global_model[i], new_global_model_fedavg[i]))
+# --- ------ ---
 avg_loss = average_weighted_loss(all_loss, all_training_samples)
 global_model.load_state_dict(OrderedDict(zip(global_model.state_dict().keys(), new_global_model)))
 
