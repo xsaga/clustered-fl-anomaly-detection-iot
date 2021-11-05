@@ -1,3 +1,75 @@
+import pickle
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from sklearn.preprocessing import KBinsDiscretizer
+from matplotlib import rcParams
+from matplotlib import pyplot as plt
+import seaborn as sns
+from feature_extractor import pcap_to_dataframe
+
+
+pcaps = [f for f in Path("./").iterdir() if f.is_file() and f.match("*.pcap")]
+
+list_dport = []
+list_sport = []
+
+for i, f in enumerate(pcaps):
+    print(f"{i}/{len(pcaps)}: {f.name}")
+    df = pcap_to_dataframe(f.name)
+    list_dport.append(df["dport"])
+    list_sport.append(df["sport"])
+
+with open("list_dport_sport.pickle", "wb") as f:
+    pickle.dump({"list_dport":list_dport, "list_sport":list_sport}, f)
+
+# with open("list_dport_sport.pickle", "rb") as f:
+#     loaded = pickle.load(f)
+#     list_dport = loaded["list_dport"]
+#     list_sport = loaded["list_sport"]
+
+########################################## merge local bins ### (no sale tan bien)
+list_dport_bins = [KBinsDiscretizer(n_bins=10, strategy="quantile").fit(l.values.reshape(-1,1)).bin_edges_[0] for l in list_dport]
+list_sport_bins = [KBinsDiscretizer(n_bins=10, strategy="quantile").fit(l.values.reshape(-1,1)).bin_edges_[0] for l in list_sport]
+
+bins_all_dport = np.concatenate(list_dport_bins).astype(int)
+bins_all_sport = np.concatenate(list_sport_bins).astype(int)
+# filter here?
+bins_dport_uniq = np.unique(np.sort(bins_all_dport))
+bins_sport_uniq = np.unique(np.sort(bins_all_sport))
+
+########################################## global discretize ### (mejor)
+
+list_dport_all = pd.concat(list_dport)
+list_sport_all = pd.concat(list_sport)
+
+dport_bins = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(list_dport_all.values.reshape(-1,1)).bin_edges_[0].astype(np.int32)
+sport_bins = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(list_sport_all.values.reshape(-1,1)).bin_edges_[0].astype(np.int32)
+
+dport_bins = np.insert(dport_bins, 0, 0)
+dport_bins[-1] = 2**16
+
+sport_bins = np.insert(sport_bins, 0, 0)
+sport_bins[-1] = 2**16
+
+pd.cut(list_dport_all.values, bins=dport_bins).value_counts().plot(kind="bar", rot=40); plt.tight_layout(); plt.show()
+pd.cut(list_sport_all.values, bins=sport_bins).value_counts().plot(kind="bar", rot=40); plt.tight_layout(); plt.show()
+
+df_ports = pd.DataFrame({"destination port": pd.cut(list_dport_all.values, bins=dport_bins),
+                         "source port": pd.cut(list_sport_all.values, bins=sport_bins)})
+
+rcParams["font.family"] = ["Latin Modern Math"]
+rcParams["font.size"] = 12.0
+
+fig, axes = plt.subplots(nrows=2, ncols=1)
+df_ports["destination port"].value_counts(normalize=True, sort=False).plot(kind="bar", ax=axes[0], rot=30)
+axes[0].set_title("Destination port")
+df_ports["source port"].value_counts(normalize=True, sort=False).plot(kind="bar", ax=axes[1], rot=30)
+axes[1].set_title("Source port")
+plt.tight_layout()
+plt.show()
+
+############################################################################## (tests, no usar)
 list_bins = []
 
 with open("results_binning_quantile.txt", "w") as o:

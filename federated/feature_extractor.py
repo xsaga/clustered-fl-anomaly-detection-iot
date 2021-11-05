@@ -6,9 +6,9 @@ from scipy import stats
 from scapy.all import *
 
 
-PORT_CATEGORIES = ["system", "user", "dynamic"]
+# PORT_CATEGORIES = ["system", "user", "dynamic"]
 IP_PROTOCOL_CATEGORIES = ["TCP", "UDP", "ICMP"]
-port_dtype = CategoricalDtype(categories=PORT_CATEGORIES)
+# port_dtype = CategoricalDtype(categories=PORT_CATEGORIES)
 ip_protocol_dtype = CategoricalDtype(categories=IP_PROTOCOL_CATEGORIES)
 
 
@@ -105,8 +105,15 @@ def preprocess_dataframe(input_df: pd.DataFrame) -> pd.DataFrame:
     df = input_df.copy()
 
     # one hot encoding for sport and dport
-    df["sport"] = df["sport"].apply(port_to_categories).astype(port_dtype)
-    df["dport"] = df["dport"].apply(port_to_categories).astype(port_dtype)
+    # df["sport"] = df["sport"].apply(port_to_categories).astype(port_dtype)
+    # df["dport"] = df["dport"].apply(port_to_categories).astype(port_dtype)
+
+    sport_bins = [0, 1883, 35783, 40629, 45765, 51039, 56023, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
+    dport_bins = [0, 1883, 35690, 41810, 48285, 54791, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
+
+    df["sport"] = pd.cut(df["sport"], bins=sport_bins)
+    df["dport"] = pd.cut(df["dport"], bins=dport_bins)
+
     sport_onehot = pd.get_dummies(df["sport"], prefix="sport")
     dport_onehot = pd.get_dummies(df["dport"], prefix="dport")
 
