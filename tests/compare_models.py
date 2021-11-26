@@ -9,6 +9,7 @@ from pathlib import Path
 
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MultipleLocator
 import matplotlib.lines as mlines
 import seaborn as sns
 
@@ -20,7 +21,8 @@ from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 
-rcParams["font.family"] = ["Latin Modern Math"]
+rcParams["font.family"] = ["Latin Modern Math"]  # "Nimbus Roman"
+rcParams["font.size"] = 12.0
 
 # no no no
 def select_best_cluster_idx(score: np.ndarray, significant=None, best=np.max, arg_best=np.argmax, worst=np.min, arg_worst=np.argmin) -> int:
@@ -115,15 +117,24 @@ for n_clusters in cluster_numbers:
     score_db.append(davies_bouldin_score(pesos_reducido, kmeans.labels_))
     score_sdbw.append(S_Dbw(pesos_reducido, kmeans.labels_, centers_id=None, method="Tong", centr="mean", metric="euclidean"))
 
-plt.plot(cluster_numbers, score_ss, label="silhouette MAX")
-plt.plot(cluster_numbers, score_ch, label="calinski-harabasz MAX")
-plt.plot(cluster_numbers, score_db, label="davies-bouldin MIN")
-plt.plot(cluster_numbers, score_sdbw, label="S_Dbw MIN")
-plt.legend()
+fig, ax1 = plt.subplots()
+ax1.set_xlabel("number of clusters")
+ax1.set_ylabel("scores")
+ax1.axvline(x=3, color="k")
+ax1.plot(cluster_numbers, score_ss, label="silhouette (MAX)", marker="o", color="tab:blue")
+ax1.plot(cluster_numbers, score_db, label="davies-bouldin (MIN)", marker="D", color="tab:green")
+ax1.plot(cluster_numbers, score_sdbw, label="S_Dbw (MIN)", marker="X", color="tab:red")
+ax2 = ax1.twinx()
+ax2.set_ylabel("score calinski-harabasz")
+ax2.plot(cluster_numbers, score_ch, label="calinski-harabasz (MAX)", marker="^", color="tab:orange")
+ax1.xaxis.set_major_locator(MultipleLocator(2))
+ax1.xaxis.set_minor_locator(MultipleLocator(1))
+fig.legend(loc="center right", bbox_to_anchor=(1, 0.5), bbox_transform=ax1.transAxes)
+fig.tight_layout()
 plt.title(f"Cluster analysis for {paths_glob_pattern}")
 plt.show()
 
-best_n_clusters = 4
+best_n_clusters = 3
 
 # pca
 pca = PCA(n_components=2)

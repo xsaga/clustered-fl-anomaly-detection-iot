@@ -10,7 +10,7 @@ from torch import optim
 from torch.utils.data import DataLoader, TensorDataset
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.metrics import confusion_matrix, roc_curve, auc, accuracy_score, f1_score
 
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -66,16 +66,28 @@ def reconstruction_error(model, loss_function, samples):
 
 # trained model
 model = Autoencoder()
-ckpt = torch.load("22jun/clustered_captures/cluster3/fl_28jun_ae_10rounds_5localepochs/models_global/round_10/global_model_round_10.tar")
+ckpt = torch.load("global_model_round_30.tar")
 model.load_state_dict(ckpt["state_dict"])
 loss_func = F.mse_loss
 
+
 # dataset estimate threshold
-# por ahora no, usar roc varios thresholds
+df = pcap_to_dataframe("coap-iot-bot-1_normal.pcap")
+df = preprocess_dataframe(df)
+timestamps = df["timestamp"].values
+df = df.drop(columns=["timestamp"])
+results = reconstruction_error(model, loss_func, torch.from_numpy(df.to_numpy(dtype=np.float32)))
+results = results.numpy()
+results_df = pd.DataFrame({"ts":timestamps, "rec_err":results})
+sns.scatterplot(data=results_df, x="ts", y="rec_err", linewidth=0, alpha=0.4)
+plt.show()
+
+th = np.max(results[1:])
+print(th)
 
 # dataset eval
-df = pcap_to_dataframe("06may_normal_ataque/iot-client-bot-1_normal.pcap")
-attack_victim_ip = ("192.168.0.254", "192.168.0.50")
+df = pcap_to_dataframe("coap-iot-bot-1_attack.pcap")
+attack_victim_ip = ("192.168.0.254", "192.168.0.90")
 
 ## labels para los ataques
 labels = label_by_ip(df, attack_victim_ip)
@@ -91,14 +103,30 @@ results = results.numpy()
 
 results_df = pd.DataFrame({"ts":timestamps, "rec_err":results, "label": labels})
 sns.scatterplot(data=results_df, x="ts", y="rec_err", hue="label", linewidth=0, alpha=0.4)
+plt.axhline(y=th, c="k")
 plt.show()
 
-th = np.max(results[:13100])
-confusion_matrix(labels, (results>th)+0)
+labels_pred = (results>th)+0
+confusion_matrix(labels, labels_pred, labels=[1,0])  # 0:normal, 1:attack; positive class is attack
+tp, fn, fp, tn = confusion_matrix(labels, labels_pred, labels=[1,0]).ravel()
+accuracy_score(labels, labels_pred)
+f1_score(labels, labels_pred, pos_label=1)
 
 fpr, tpr, thresholds = roc_curve(labels, results, pos_label=1)
 print(auc(fpr, tpr))
 plt.plot(fpr, tpr)
 plt.xlabel("FPR")
 plt.ylabel("TPR")
+plt.show()
+
+
+##
+sec_since = timestamps-timestamps[0]
+plt.scatter(sec_since[labels==1], results[labels==1], marker = "^", c='#ff7f0e', alpha=0.4, label="Attack (ground truth)")
+plt.scatter(sec_since[labels==0], results[labels==0], marker = "o", c='#1f77b4', alpha=0.4, label="Normal (ground truth)")
+plt.axhline(y=th, linewidth=0.5, c="k", label="Threshold")
+plt.xlabel("Seconds since beginning of capture")
+plt.ylabel("MSE")
+plt.legend()
+plt.tight_layout()
 plt.show()
