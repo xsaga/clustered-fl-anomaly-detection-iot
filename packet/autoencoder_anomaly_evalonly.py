@@ -1,5 +1,5 @@
 from feature_extractor import pcap_to_dataframe, preprocess_dataframe
-
+import os
 import numpy as np
 import pandas as pd
 
@@ -11,9 +11,20 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, roc_curve, auc, accuracy_score, f1_score
-
+from matplotlib import rcParams
 from matplotlib import pyplot as plt
 import seaborn as sns
+
+
+rcParams["font.family"] = ["Times New Roman"]
+rcParams["font.size"] = 8
+rcParams["xtick.labelsize"] = 8
+rcParams["ytick.labelsize"] = 8
+rcParams["axes.labelsize"] = 8
+rcParams["legend.fontsize"] = 8
+rcParams["lines.markersize"] = 6
+plot_width = 3.487  # in
+plot_height = 2.155
 
 
 def label_by_ip(df :pd.DataFrame, ip_list):
@@ -72,7 +83,7 @@ loss_func = F.mse_loss
 
 
 # dataset estimate threshold
-df = pcap_to_dataframe("coap-iot-bot-1_normal.pcap")
+df = pcap_to_dataframe("iot-client2-bot-1_normal.pcap")
 df = preprocess_dataframe(df)
 timestamps = df["timestamp"].values
 df = df.drop(columns=["timestamp"])
@@ -86,8 +97,8 @@ th = np.max(results[1:])
 print(th)
 
 # dataset eval
-df = pcap_to_dataframe("coap-iot-bot-1_attack.pcap")
-attack_victim_ip = ("192.168.0.254", "192.168.0.90")
+df = pcap_to_dataframe("iot-client2-bot-1_attack.pcap")
+attack_victim_ip = ("192.168.0.254", "192.168.0.50")
 
 ## labels para los ataques
 labels = label_by_ip(df, attack_victim_ip)
@@ -121,12 +132,67 @@ plt.show()
 
 
 ##
+from scipy import stats
 sec_since = timestamps-timestamps[0]
-plt.scatter(sec_since[labels==1], results[labels==1], marker = "^", c='#ff7f0e', alpha=0.4, label="Attack (ground truth)")
-plt.scatter(sec_since[labels==0], results[labels==0], marker = "o", c='#1f77b4', alpha=0.4, label="Normal (ground truth)")
-plt.axhline(y=th, linewidth=0.5, c="k", label="Threshold")
-plt.xlabel("Seconds since beginning of capture")
+
+# reduce number of plot elements to control the output svg, pdf file size
+
+# density
+X = np.vstack([timestamps, results])
+kde = stats.gaussian_kde(X)
+Z = kde(X)
+
+Z_s = (Z - np.min(Z)) / (np.max(Z)*1.01 - np.min(Z))  # prevent probability to remove=1 on some points
+Z_s[Z_s > 0.8] = 0.8
+Z_s[(1700 < sec_since) & (sec_since < 5800) & (Z_s < 0.7)] = 0.05
+Z_s[(labels==1) & (results > 0.06)] = 0.85
+Z_s[(labels==1) & (results > 0.0299) & (results < 0.03019) & (4728.62 < sec_since) & (sec_since < 4728.84)] = 0.95
+Z_s[(labels==1) & (results > 0.0230211) & (results < 0.0231015) & (4728.62 < sec_since) & (sec_since < 4728.84)] = 0.95
+
+plt.scatter(sec_since, Z_s)
+plt.show()
+
+mask = np.ones(sec_since.shape, dtype=bool)
+for i in range(3):
+    R = np.random.random(Z.shape)
+    mask = np.logical_and(mask, (R-0.0) > np.power(Z_s, 1/2))  # adjust threshold and power
+
+# manual
+# num_elems = results.shape[0]
+# mask = np.zeros(results.shape)
+# mask[:30000] = 1
+# np.random.shuffle(mask)
+# mask = mask.astype(bool)
+
+#mask2 = (results < 9e-5)
+#mask = np.logical_and(mask, mask2)
+# mask = mask2
+
+mask[0] = True
+mask[-1] = True
+sec_since_ = sec_since[mask]
+results_ = results[mask]
+labels_ = labels[mask]
+print(np.sum(mask))
+plt.close()
+plt.scatter(sec_since_[labels_==1], results_[labels_==1], marker = "^", c='#ff7f0e', alpha=0.4, s=50, linewidth=0, label="attack (ground truth)")
+plt.scatter(sec_since_[labels_==0], results_[labels_==0], marker = "o", c='#1f77b4', alpha=0.4, s=50, linewidth=0, label="normal (ground truth)")
+plt.axhline(y=th*2.7, linewidth=0.5, c="k", label="threshold")
+
+plt.hlines(y=0.05, xmin=1909, xmax=5590, colors="black", linestyles="dashed", linewidths=0.75)
+plt.annotate(text="C&C active\nperiod", xy=(1850, 0.05), xytext=(0, 0.035), arrowprops=dict(facecolor='black', width=0.1, headwidth=1, headlength=1))
+
+plt.text(2851, 0.049, "A", ha="center", color="white", va="center", size=6, bbox=dict(boxstyle="circle,pad=0.1", fc="black", ec="k", lw=0.1))
+plt.text(3544, 0.049, "B", ha="center", color="white", va="center", size=6, bbox=dict(boxstyle="circle,pad=0.1", fc="black", ec="k", lw=0.1))
+plt.text(4136, 0.049, "C", ha="center", color="white", va="center", size=6, bbox=dict(boxstyle="circle,pad=0.1", fc="black", ec="k", lw=0.1))
+plt.text(4728, 0.049, "D", ha="center", color="white", va="center", size=6, bbox=dict(boxstyle="circle,pad=0.1", fc="black", ec="k", lw=0.1))
+
+plt.xlabel("seconds since beginning of capture")
 plt.ylabel("MSE")
 plt.legend()
+fig = plt.gcf()
+fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
-plt.show()
+# plt.show()
+fig.savefig(os.path.expanduser("~/packet_mse_mqtt2.pdf"), format="pdf")
+plt.close()

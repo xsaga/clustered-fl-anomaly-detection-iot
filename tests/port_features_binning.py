@@ -1,3 +1,4 @@
+import os
 import pickle
 import numpy as np
 import pandas as pd
@@ -58,16 +59,26 @@ pd.cut(list_sport_all.values, bins=sport_bins).value_counts().plot(kind="bar", r
 df_ports = pd.DataFrame({"destination port": pd.cut(list_dport_all.values, bins=dport_bins),
                          "source port": pd.cut(list_sport_all.values, bins=sport_bins)})
 
-rcParams["font.family"] = ["Latin Modern Math"]
-rcParams["font.size"] = 12.0
+rcParams["font.family"] = ["Times New Roman"]
+rcParams["font.size"] = 8
+rcParams["xtick.labelsize"] = 8
+rcParams["ytick.labelsize"] = 8
+rcParams["axes.labelsize"] = 8
+rcParams["legend.fontsize"] = 8
+plot_width = 3.487  # in
+plot_height = 2.615
 
 fig, axes = plt.subplots(nrows=2, ncols=1)
-df_ports["destination port"].value_counts(normalize=True, sort=False).plot(kind="bar", ax=axes[0], rot=30)
-axes[0].set_title("Destination port")
-df_ports["source port"].value_counts(normalize=True, sort=False).plot(kind="bar", ax=axes[1], rot=30)
-axes[1].set_title("Source port")
+df_ports["source port"].value_counts(normalize=True, sort=False).plot(kind="bar", ax=axes[0], rot=15)
+axes[0].legend()
+df_ports["destination port"].value_counts(normalize=True, sort=False).plot(kind="bar", ax=axes[1], rot=15)
+axes[1].legend()
+axes[1].set_xlabel("port bins")
+axes[1].set_ylabel("normalized count")
+fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
-plt.show()
+fig.savefig(os.path.expanduser("~/src_dst_port_binning.pdf"), format="pdf")
+# plt.show()
 
 ############################################################################## (tests, no usar)
 list_bins = []

@@ -1,9 +1,11 @@
 from pathlib import Path
+import os
 import itertools
 import re
 import torch
 import numpy as np
 import pandas as pd
+from matplotlib import rcParams
 from matplotlib import pyplot as plt
 import seaborn as sns
 
@@ -62,6 +64,18 @@ for exp_key, exp_eval_train in all_experiments.items():
     eval_loss = exp_eval_train["eval"]
     print(f"{exp_key} == {rename_map[exp_key]}, last round mean eval loss: {eval_loss[-1]}")
 
+
+rcParams["font.family"] = ["Times New Roman"]
+rcParams["font.size"] = 8
+rcParams["xtick.labelsize"] = 8
+rcParams["ytick.labelsize"] = 8
+rcParams["axes.labelsize"] = 8
+rcParams["legend.fontsize"] = 4
+rcParams["lines.markersize"] = 2
+rcParams["lines.linewidth"] = 0.75
+plot_width = 3.213  # in
+plot_height = 1.986
+
 # plot
 markers = itertools.cycle(("o", "v", "^", "<", ">", "s", "p", "P", "*", "h", "X", "D"))
 for exp_key, exp_eval_train in all_experiments.items():
@@ -70,14 +84,23 @@ for exp_key, exp_eval_train in all_experiments.items():
     eval_loss = exp_eval_train["eval"]
     plt.plot(list(range(1, len(eval_loss)+1)), eval_loss, label=rename_map[exp_key], marker=next(markers))
 
+plt.xlim(left=1)
+axlabels = [str(l) if l%10==0 else "" for l in np.arange(61)]
+axlabels[0] = ""
+axlabels[1] = "1"
+plt.xticks(np.arange(61), axlabels)
 plt.legend(loc="upper right")
 plt.xlabel("FL rounds")
-plt.ylabel("Evaluation loss")
+plt.ylabel("evaluation loss")
+fig = plt.gcf()
+fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.expanduser("~/clientopt_serveropt.pdf"), format="pdf")
+# plt.show()
 
 
 # heatmap
+# run again the script with the new exp_patter
 # col = lr_s, idx=lr_c
           # lr_c
 lr_idx = ["0.1", "0.01", "0.001", "0.0001"]
@@ -89,8 +112,11 @@ lr_data = {"0.1":[all_experiments["lr_exp16"]["eval"][-1], all_experiments["lr_e
            "1.5":[all_experiments["lr_exp13"]["eval"][-1], all_experiments["lr_exp1"]["eval"][-1], all_experiments["lr_exp2"]["eval"][-1], all_experiments["lr_exp3"]["eval"][-1]]}
 
 lr_df = pd.DataFrame(lr_data, index=lr_idx)
-sns.heatmap(np.log10(lr_df), annot=True, cmap=sns.color_palette("YlOrBr", as_cmap=True).reversed())
-plt.xlabel("Server learning rate")
-plt.ylabel("Client learning rate")
+sns.heatmap(np.log10(lr_df), annot=True, cmap=sns.color_palette("Blues", as_cmap=True).reversed())
+plt.xlabel("server learning rate")
+plt.ylabel("client learning rate")
+fig = plt.gcf()
+fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.expanduser("~/lr_heatmap.pdf"), format="pdf")
+# plt.show()

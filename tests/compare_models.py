@@ -1,5 +1,5 @@
 import glob
-
+import os
 import numpy as np
 
 import torch
@@ -21,8 +21,16 @@ from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 
-rcParams["font.family"] = ["Latin Modern Math"]  # "Nimbus Roman"
-rcParams["font.size"] = 12.0
+rcParams["font.family"] = ["Times New Roman"]
+rcParams["font.size"] = 4
+rcParams["xtick.labelsize"] = 6
+rcParams["ytick.labelsize"] = 6
+rcParams["axes.labelsize"] = 6
+rcParams["legend.fontsize"] = 4
+rcParams["lines.linewidth"] = 0.75
+rcParams["lines.markersize"] = 2
+plot_width = 1.714  # in
+plot_height = 1.285
 
 # no no no
 def select_best_cluster_idx(score: np.ndarray, significant=None, best=np.max, arg_best=np.argmax, worst=np.min, arg_worst=np.argmin) -> int:
@@ -75,7 +83,8 @@ class Autoencoder(nn.Module):
         return decoded
 
 # load
-paths_glob_pattern = "./*.pt"
+EPSILON=2
+paths_glob_pattern = f"./{EPSILON}epoch/*.pt"
 model_paths = glob.glob(paths_glob_pattern)
 print(f"found {len(model_paths)} models")
 
@@ -121,18 +130,20 @@ fig, ax1 = plt.subplots()
 ax1.set_xlabel("number of clusters")
 ax1.set_ylabel("scores")
 ax1.axvline(x=3, color="k")
-ax1.plot(cluster_numbers, score_ss, label="silhouette (MAX)", marker="o", color="tab:blue")
-ax1.plot(cluster_numbers, score_db, label="davies-bouldin (MIN)", marker="D", color="tab:green")
-ax1.plot(cluster_numbers, score_sdbw, label="S_Dbw (MIN)", marker="X", color="tab:red")
+ax1.plot(cluster_numbers, score_ss, label="silhouette", marker="o", color="#1f77b4")  # (MAX)
+ax1.plot(cluster_numbers, score_db, label="davies-bouldin", marker="D", color="#ff7f0e")  # (MIN)
+ax1.plot(cluster_numbers, score_sdbw, label="S_Dbw", marker="P", color="#2ca02c")  # (MIN)
 ax2 = ax1.twinx()
 ax2.set_ylabel("score calinski-harabasz")
-ax2.plot(cluster_numbers, score_ch, label="calinski-harabasz (MAX)", marker="^", color="tab:orange")
+ax2.plot(cluster_numbers, score_ch, label="calinski-harabasz", marker="^", color="#d62728")  # (MAX)
 ax1.xaxis.set_major_locator(MultipleLocator(2))
 ax1.xaxis.set_minor_locator(MultipleLocator(1))
 fig.legend(loc="center right", bbox_to_anchor=(1, 0.5), bbox_transform=ax1.transAxes)
+fig.set_size_inches(plot_width, plot_height)
 fig.tight_layout()
-plt.title(f"Cluster analysis for {paths_glob_pattern}")
-plt.show()
+# plt.title(f"Cluster analysis for {paths_glob_pattern}")
+fig.savefig(os.path.expanduser(f"~/{EPSILON}epochs_scores_markers.pdf"), format="pdf")
+# plt.show()
 
 best_n_clusters = 3
 
@@ -144,27 +155,37 @@ reducido = pca.transform(pesos)
 
 fig, ax = plt.subplots()
 # ax.scatter(reducido[:, 0], reducido[:, 1], c=kmeans_labels[best_n_clusters], alpha=0.3)
-colormin = np.min(kmeans_labels[best_n_clusters])
-colormax = np.max(kmeans_labels[best_n_clusters])
-ax.scatter(reducido[tags=="coap-t1", 0], reducido[tags=="coap-t1", 1], marker="o", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="coap-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="coap-t1")
-ax.scatter(reducido[tags=="mqtt-t1", 0], reducido[tags=="mqtt-t1", 1], marker="s", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="mqtt-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t1")
-ax.scatter(reducido[tags=="mqtt-t2", 0], reducido[tags=="mqtt-t2", 1], marker="^", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="mqtt-t2"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t2")
+### dynamic colormap based on number of clusters
+# colormin = np.min(kmeans_labels[best_n_clusters])
+# colormax = np.max(kmeans_labels[best_n_clusters])
+# ax.scatter(reducido[tags=="coap-t1", 0], reducido[tags=="coap-t1", 1], marker="o", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="coap-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="coap-t1")
+# ax.scatter(reducido[tags=="mqtt-t1", 0], reducido[tags=="mqtt-t1", 1], marker="s", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="mqtt-t1"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t1")
+# ax.scatter(reducido[tags=="mqtt-t2", 0], reducido[tags=="mqtt-t2", 1], marker="^", s=42, cmap="tab10", c=kmeans_labels[best_n_clusters][tags=="mqtt-t2"], vmin=colormin, vmax=colormax, alpha=0.5, edgecolors="face", label="mqtt-t2")
+
+### fixed colors, final plot
+ax.scatter(reducido[tags=="coap-t1", 0], reducido[tags=="coap-t1", 1], marker="o", color="#1f77b4", alpha=0.4, linewidth=0.2, label="coap-t1")  # s=42
+ax.scatter(reducido[tags=="mqtt-t1", 0], reducido[tags=="mqtt-t1", 1], marker="s", color="#ff7f0e", alpha=0.4, linewidth=0.2, label="mqtt-t1")
+ax.scatter(reducido[tags=="mqtt-t2", 0], reducido[tags=="mqtt-t2", 1], marker="^", color="#2ca02c", alpha=0.4, linewidth=0.2, label="mqtt-t2")
+
 
 # for i, n in enumerate(names):
     # ax.annotate(n, (reducido[i, 0], reducido[i, 1])).set_alpha(0.3)
 
-plt.title(f"Clusters for {paths_glob_pattern}")
+# plt.title(f"Clusters for {paths_glob_pattern}")
 
-coap1_line = mlines.Line2D([], [], color="black", marker="o", markersize=10, ls="", label="coap-t1")
-mqtt1_line = mlines.Line2D([], [], color="black", marker="s", markersize=10, ls="", label="mqtt-t1")
-mqtt2_line = mlines.Line2D([], [], color="black", marker="^", markersize=10, ls="", label="mqtt-t2")
+coap1_line = mlines.Line2D([], [], color="#1f77b4", marker="o", ls="", label="coap-t1")  # markersize=10
+mqtt1_line = mlines.Line2D([], [], color="#ff7f0e", marker="s", ls="", label="mqtt-t1")
+mqtt2_line = mlines.Line2D([], [], color="#2ca02c", marker="^", ls="", label="mqtt-t2")
 
 ax.set_xlabel("principal component 1")
 ax.set_ylabel("principal component 2")
 
 plt.legend(handles=[coap1_line, mqtt1_line, mqtt2_line])
+fig.set_size_inches(plot_width, plot_height)
 fig.tight_layout()
-plt.show()
+fig.savefig(os.path.expanduser(f"~/{EPSILON}epochs_pca.pdf"), format="pdf")
+
+######
 
 for i in range(best_n_clusters):
     devs = tags[kmeans_labels[best_n_clusters]==i]
