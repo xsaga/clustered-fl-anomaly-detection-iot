@@ -20,6 +20,7 @@ from s_dbw import S_Dbw
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+from sklearn.metrics import rand_score, adjusted_rand_score, adjusted_mutual_info_score, normalized_mutual_info_score, homogeneity_score, completeness_score, v_measure_score, homogeneity_completeness_v_measure
 
 rcParams["font.family"] = ["Times New Roman"]
 rcParams["font.size"] = 4
@@ -100,7 +101,7 @@ for model_path in model_paths:
     # pesos.append(m.decoder[2].weight.flatten().detach().numpy())
     names.append(Path(model_path).stem)
 
-names = [n.split("_")[0].replace("device-", "") for n in names]
+names = [n.split("_")[0].replace("iotsim-", "") for n in names]
 tags = np.array([n.rsplit("-", 1)[0] for n in names])
 pesos = np.array(pesos)
 
@@ -155,6 +156,8 @@ reducido = pca.transform(pesos)
 
 fig, ax = plt.subplots()
 # ax.scatter(reducido[:, 0], reducido[:, 1], c=kmeans_labels[best_n_clusters], alpha=0.3)
+# for i, n in enumerate(names):
+#     ax.annotate(n, (reducido[i, 0], reducido[i, 1])).set_alpha(0.3)
 ### dynamic colormap based on number of clusters
 # colormin = np.min(kmeans_labels[best_n_clusters])
 # colormax = np.max(kmeans_labels[best_n_clusters])
@@ -268,3 +271,71 @@ plt.plot(num_clusters, silhouette_scores)
 plt.show()
 
 #  https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html#sphx-glr-auto-examples-cluster-plot-agglomerative-dendrogram-py
+
+###
+
+In [31]: cluster_numbers = list(range(2, min(21, pesos.shape[0]-1)))
+    ...: agg_labels = dict()
+    ...: score_ss = []
+    ...: score_ch = []
+    ...: score_db = []
+    ...: score_sdbw = []
+    ...: for n_clusters in cluster_numbers:
+    ...:     print(n_clusters)
+    ...:     agg = AgglomerativeClustering(n_clusters=n_clusters).fit(pesos_reducido)
+    ...:     agg_labels[n_clusters] = agg.labels_
+    ...: 
+    ...:     score_ss.append(silhouette_score(pesos_reducido, agg.labels_))
+    ...:     score_ch.append(calinski_harabasz_score(pesos_reducido, agg.labels_))
+    ...:     score_db.append(davies_bouldin_score(pesos_reducido, agg.labels_))
+    ...:     score_sdbw.append(S_Dbw(pesos_reducido, agg.labels_, centers_id=None, method="Tong", centr="mean", metric="euclidean"))
+    ...: 
+
+
+In [32]: fig, ax1 = plt.subplots()
+    ...: ax1.set_xlabel("number of clusters")
+    ...: ax1.set_ylabel("scores")
+    ...: ax1.plot(cluster_numbers, score_ss, label="silhouette", marker="o", color="#1f77b4")  # (MAX)
+    ...: ax1.plot(cluster_numbers, score_db, label="davies-bouldin", marker="D", color="#ff7f0e")  # (MIN)
+    ...: ax1.plot(cluster_numbers, score_sdbw, label="S_Dbw", marker="P", color="#2ca02c")  # (MIN)
+    ...: ax2 = ax1.twinx()
+    ...: ax2.set_ylabel("score calinski-harabasz")
+    ...: ax2.plot(cluster_numbers, score_ch, label="calinski-harabasz", marker="^", color="#d62728")  # (MAX)
+    ...: ax1.xaxis.set_major_locator(MultipleLocator(2))
+    ...: ax1.xaxis.set_minor_locator(MultipleLocator(1))
+    ...: fig.legend(loc="center right", bbox_to_anchor=(1, 0.5), bbox_transform=ax1.transAxes)
+    ...: fig.show()
+
+
+# supervised score
+
+device_name_map = {"air-quality": 0,
+                   "building-monitor": 1,
+                   "city-power": 2,
+                   "combined-cycle": 3,
+                   "combined-cycle-tls": 4,
+                   "cooler-motor": 5,
+                   "domotic-monitor": 6,
+                   "hydraulic-system": 7,
+                   "ip-camera-museum": 8,
+                   "ip-camera-street": 9,
+                   "predictive-maintenance": 10,
+                   "stream-consumer": 11}
+
+labels_true = np.array(list(map(lambda x: device_name_map[x], tags)))
+
+ard_score = []
+ami_score = []
+vme_score = []
+for n_clusters in cluster_numbers:
+    ard_score.append(adjusted_rand_score(labels_true, kmeans_labels[n_clusters]))
+    ami_score.append(adjusted_mutual_info_score(labels_true, kmeans_labels[n_clusters]))
+    vme_score.append(v_measure_score(labels_true, kmeans_labels[n_clusters]))
+
+plt.plot(cluster_numbers, ard_score, label="ard")
+plt.plot(cluster_numbers, ami_score, label="ami")
+plt.plot(cluster_numbers, vme_score, label="vme")
+plt.legend()
+plt.show()
+
+homogeneity_completeness_v_measure(labels_true, kmeans_labels[12])

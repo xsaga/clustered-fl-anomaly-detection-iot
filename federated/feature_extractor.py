@@ -6,9 +6,64 @@ from scipy import stats
 from scapy.all import *
 
 
-# PORT_CATEGORIES = ["system", "user", "dynamic"]
+port_basic_three_map = [
+    (range(0, 1024), "system"),
+    (range(1024, 49152), "user"),
+    (range(49152, 65536), "dynamic")
+]
+
+port_hierarchy_map = [
+    ([80,280,443,591,593,777,488,1183,1184,2069,2301,2381,8008,8080], "httpPorts"),
+    ([24,25,50,58,61,109,110,143,158,174,209,220,406,512,585,993,995], "mailPorts"),
+    ([42,53,81,101,105,261], "dnsPorts"),
+    ([20,21,47,69,115,152,189,349,574,662,989,990], "ftpPorts"),
+    ([22,23,59,87,89,107,211,221,222,513,614,759,992], "shellPorts"),
+    ([512,514], "remoteExecPorts"),
+    ([13,56,113,316,353,370,749,750], "authPorts"),
+    ([229,464,586,774], "passwordPorts"),
+    ([114,119,532,563], "newsPorts"),
+    ([194,258,531,994], "chatPorts"),
+    ([35,92,170,515,631], "printPorts"),
+    ([13,37,52,123,519,525], "timePorts"),
+    ([65,66,118,150,156,217], "dbmsPorts"),
+    ([546,547,647,847], "dhcpPorts"),
+    ([43,63], "whoisPorts"),
+    (range(137,139+1), "netbiosPorts"),
+    ([88,748,750], "kerberosPorts"),
+    ([111,121,369,530,567,593,602], "RPCPorts"),
+    ([161,162,391], "snmpPorts"),
+    (range(0,1024), "PRIVILEGED_PORTS"),
+    (range(1024,65536), "NONPRIVILEGED_PORTS")
+]
+
+port_hierarchy_map_iot = [
+    ([1883, 8883], "mqttPorts"),
+    ([5683, 5684], "coapPorts"),
+    ([8554, 8322, 8000, 8001, 8002, 8003, 1935, 8888], "rtspPorts"),
+    ([80,280,443,591,593,777,488,1183,1184,2069,2301,2381,8008,8080], "httpPorts"),
+    ([24,25,50,58,61,109,110,143,158,174,209,220,406,512,585,993,995], "mailPorts"),
+    ([42,53,81,101,105,261], "dnsPorts"),
+    ([20,21,47,69,115,152,189,349,574,662,989,990], "ftpPorts"),
+    ([22,23,59,87,89,107,211,221,222,513,614,759,992], "shellPorts"),
+    ([512,514], "remoteExecPorts"),
+    ([13,56,113,316,353,370,749,750], "authPorts"),
+    ([229,464,586,774], "passwordPorts"),
+    ([114,119,532,563], "newsPorts"),
+    ([194,258,531,994], "chatPorts"),
+    ([35,92,170,515,631], "printPorts"),
+    ([13,37,52,123,519,525], "timePorts"),
+    ([65,66,118,150,156,217], "dbmsPorts"),
+    ([546,547,647,847], "dhcpPorts"),
+    ([43,63], "whoisPorts"),
+    (range(137,139+1), "netbiosPorts"),
+    ([88,748,750], "kerberosPorts"),
+    ([111,121,369,530,567,593,602], "RPCPorts"),
+    ([161,162,391], "snmpPorts"),
+    (range(0,1024), "PRIVILEGED_PORTS"),
+    (range(1024,65536), "NONPRIVILEGED_PORTS")
+]
+
 IP_PROTOCOL_CATEGORIES = ["TCP", "UDP", "ICMP"]
-# port_dtype = CategoricalDtype(categories=PORT_CATEGORIES)
 ip_protocol_dtype = CategoricalDtype(categories=IP_PROTOCOL_CATEGORIES)
 
 
@@ -25,13 +80,11 @@ def tcp_flag_to_str(flag: int) -> str:
     return str(TCP(flags=flag).flags)
 
 
-def port_to_categories(port: int) -> str:  #! incrementar la clasificacion, jerarquias mas detalladas.
-    if port in range(1, 1024):
-        return "system"
-    elif port in range(1024, 49152):
-        return "user"
-    elif port in range(49152, 65536):
-        return "dynamic"
+def port_to_categories(port_map, port: int) -> str:
+    for ph_range, ph_name in port_map:
+        if port in ph_range:
+            return ph_name
+
     return ""
 
 
@@ -101,18 +154,29 @@ def pcap_to_dataframe(pcap_filename: str) -> pd.DataFrame:
     return pd.DataFrame(pkt_features)
 
 
-def preprocess_dataframe(input_df: pd.DataFrame) -> pd.DataFrame:
-    df = input_df.copy()
-
-    # one hot encoding for sport and dport
-    # df["sport"] = df["sport"].apply(port_to_categories).astype(port_dtype)
-    # df["dport"] = df["dport"].apply(port_to_categories).astype(port_dtype)
-
+def preprocess_dataframe(input_df: pd.DataFrame, port_mapping = None, sport_bins = None, dport_bins = None) -> pd.DataFrame:
+    """
+    Ex: 
     sport_bins = [0, 1883, 35783, 40629, 45765, 51039, 56023, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
     dport_bins = [0, 1883, 35690, 41810, 48285, 54791, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
+    """
 
-    df["sport"] = pd.cut(df["sport"], bins=sport_bins)
-    df["dport"] = pd.cut(df["dport"], bins=dport_bins)
+    if (port_mapping is None) and (sport_bins is None) and (dport_bins) is None:
+        port_mapping = port_basic_three_map
+        print("Using default port mapping: ", port_mapping)
+
+    df = input_df.copy()
+
+    if port_mapping:
+        # one hot encoding for sport and dport using port mapping
+        port_categories = list(map(lambda x: x[1], port_mapping))
+        port_dtype = CategoricalDtype(categories=port_categories)
+        df["sport"] = df["sport"].apply(lambda p: port_to_categories(port_mapping, p)).astype(port_dtype)
+        df["dport"] = df["dport"].apply(lambda p: port_to_categories(port_mapping, p)).astype(port_dtype)
+    else:
+        # one hot encoding for sport and dport using port bins
+        df["sport"] = pd.cut(df["sport"], bins=sport_bins)
+        df["dport"] = pd.cut(df["dport"], bins=dport_bins)
 
     sport_onehot = pd.get_dummies(df["sport"], prefix="sport")
     dport_onehot = pd.get_dummies(df["dport"], prefix="dport")
@@ -133,13 +197,6 @@ def preprocess_dataframe(input_df: pd.DataFrame) -> pd.DataFrame:
     tcp_flags_df = pd.DataFrame(tcp_flags, columns=[f"tcp_flag_{x}" for x in TCP.flags.names])
 
     # scaling
-    # df["packet_length"] = np.log1p(df["packet_length"])
-    # df["iat"] = np.log1p(df["iat"])
-    # df["window"] = np.log1p(df["window"])
-    # df["ip_ttl"] = np.log1p(df["ip_ttl"])
-    # df["ip_tos"] = np.log1p(df["ip_tos"])
-    # df["h"] = df["h"]/(-math.log2(1/256))  # entropy/8.0
-
     df["packet_length"] = df["packet_length"]/1514
     df["iat"] = np.log1p(df["iat"])
     df["window"] = df["window"]/65535

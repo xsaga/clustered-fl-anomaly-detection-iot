@@ -1,3 +1,4 @@
+# see compare_hyperparams.py
 from pathlib import Path
 import os
 import itertools

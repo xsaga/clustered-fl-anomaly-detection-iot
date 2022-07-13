@@ -47,10 +47,12 @@ list_sport_all = pd.concat(list_sport)
 dport_bins = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(list_dport_all.values.reshape(-1,1)).bin_edges_[0].astype(np.int32)
 sport_bins = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(list_sport_all.values.reshape(-1,1)).bin_edges_[0].astype(np.int32)
 
-dport_bins = np.insert(dport_bins, 0, 0)
+if dport_bins[0] > 0:
+    dport_bins = np.insert(dport_bins, 0, 0)
 dport_bins[-1] = 2**16
 
-sport_bins = np.insert(sport_bins, 0, 0)
+if sport_bins[0] > 0:
+    sport_bins = np.insert(sport_bins, 0, 0)
 sport_bins[-1] = 2**16
 
 pd.cut(list_dport_all.values, bins=dport_bins).value_counts().plot(kind="bar", rot=40); plt.tight_layout(); plt.show()
@@ -130,7 +132,7 @@ todos = pd.concat(list_cuts_series)
 todos.value_counts(sort=False).plot(kind="bar", rot=60); plt.show()
 
 
-
+# #################### vvvv
 In [386]: list_dport = []
           list_sport = []
      ...: for i,f in enumerate(pcaps):
@@ -144,20 +146,42 @@ In [386]: list_dport = []
 list_dport_count_raw = [x.value_counts(normalize=False).sort_index() for x in list_dport]
 list_dport_count_norm = [x.value_counts(normalize=True).sort_index() for x in list_dport]
 
-todos_count_raw = list_dport_count_raw[0]
+list_sport_count_raw = [x.value_counts(normalize=False).sort_index() for x in list_sport]
+list_sport_count_norm = [x.value_counts(normalize=True).sort_index() for x in list_sport]
+
+todos_dport_count_raw = list_dport_count_raw[0]
 for ps in list_dport_count_raw[1:]:
-    todos_count_raw = todos_count_raw.add(ps, fill_value=0)
+    todos_dport_count_raw = todos_dport_count_raw.add(ps, fill_value=0)
 
-todos_count_norm = list_dport_count_norm[0]
+todos_sport_count_raw = list_sport_count_raw[0]
+for ps in list_sport_count_raw[1:]:
+    todos_sport_count_raw = todos_sport_count_raw.add(ps, fill_value=0)
+
+todos_dport_count_norm = list_dport_count_norm[0]
 for ps in list_dport_count_norm[1:]:
-    todos_count_norm = todos_count_norm.add(ps, fill_value=0)
-# todos_count.sum() == N(pcaps)
+    todos_dport_count_norm = todos_dport_count_norm.add(ps, fill_value=0)
+todos_dport_count_norm = todos_dport_count_norm/todos_dport_count_norm.sum()
 
-todos_count_raw.plot(kind="bar", rot=45); plt.show()
-todos_count_norm.plot(kind="bar", rot=45); plt.show()
+todos_sport_count_norm = list_sport_count_norm[0]
+for ps in list_sport_count_norm[1:]:
+    todos_sport_count_norm = todos_sport_count_norm.add(ps, fill_value=0)
+todos_sport_count_norm = todos_sport_count_norm/todos_sport_count_norm.sum()
+
+todos_dport_count_raw.plot(kind="bar", rot=45); plt.show()
+todos_dport_count_norm.plot(kind="bar", rot=45); plt.show()
 # pero los count no se pueden binear así ...
 # igual, se puede muestrear basado en los count y discretizar el muestreo.?
 # pd.Series(np.random.choice(todos_count_norm.index.values, size=1000000, p=todos_count_norm.values)).value_counts(normalize=True).sort_index()
+
+dportsynt=pd.Series(np.random.choice(todos_dport_count_norm.index.values, size=1000000, p=todos_dport_count_norm.values))
+dportsynth_bins = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(dportsynt.values.reshape(-1,1)).bin_edges_[0].astype(np.int32)
+
+sportsynt=pd.Series(np.random.choice(todos_sport_count_norm.index.values, size=1000000, p=todos_sport_count_norm.values))
+sportsynth_bins = KBinsDiscretizer(n_bins=10, strategy="quantile").fit(sportsynt.values.reshape(-1,1)).bin_edges_[0].astype(np.int32)
+
+print("dport_bins = ", dportsynth_bins)
+print("sport_bins = ", sportsynth_bins)
+
 
 
 list_dport_all = pd.concat(list_dport)

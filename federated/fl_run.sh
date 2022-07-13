@@ -12,7 +12,7 @@ else
     echo "is empty"
 fi
 
-FL_ROUNDS=4
+FL_ROUNDS=10
 
 python fl_server.py
 

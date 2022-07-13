@@ -8,7 +8,7 @@ get_seeded_random()
     openssl enc -aes-256-ctr -pass pass:"$seed" -nosalt \
             </dev/zero 2>/dev/null
 }
-     
+
 
 # sort --random-sort --random-source=<(get_seeded_random 42)
 # ls *.pcap | sort --random-sort --random-source=<(get_seeded_random 42) | head -n 5
@@ -24,7 +24,7 @@ else
     echo "is empty"
 fi
 
-FL_ROUNDS=4
+FL_ROUNDS=10
 
 python fl_server.py
 
