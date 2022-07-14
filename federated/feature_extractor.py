@@ -1,10 +1,11 @@
 import math
+import subprocess
 import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 from scipy import stats
 from scapy.all import *
-
+from tqdm import tqdm
 
 port_basic_three_map = [
     (range(0, 1024), "system"),
@@ -88,68 +89,76 @@ def port_to_categories(port_map, port: int) -> str:
     return ""
 
 
-def pcap_to_dataframe(pcap_filename: str) -> pd.DataFrame:
-    capture = rdpcap(pcap_filename)
+def pcap_to_dataframe(pcap_filename: str, verbose=False) -> pd.DataFrame:
+    # count number of packets
+    capinfos = subprocess.run(["capinfos", "-M", "-c", pcap_filename], capture_output=True, encoding="utf-8")
+    packet_count = int(capinfos.stdout.strip().split()[-1])
+    if verbose:
+        print(f"Number of packets in capture {packet_count}")
+
+    # rdpcap uses too much memory
+    # capture = rdpcap(pcap_filename)
     pkt_features = []
 
-    for pkt in capture:
-        features = {"timestamp": 0,
-                    "packet_length": 0,
-                    "iat": 0,
-                    "h": 0,
-                    "ip_src": "",
-                    "ip_dst": "",
-                    "ip_tos": 0,
-                    "ip_flags": 0,
-                    "ip_ttl": 0,
-                    "ip_protocol": "",
-                    "sport": 0,
-                    "dport": 0,
-                    "tcp_flags": 0,
-                    "window": 0}
+    with PcapReader(pcap_filename) as capture:
+        for pkt in tqdm(capture, total=packet_count, disable=(not verbose)):
+            features = {"timestamp": 0,
+                        "packet_length": 0,
+                        "iat": 0,
+                        "h": 0,
+                        "ip_src": "",
+                        "ip_dst": "",
+                        "ip_tos": 0,
+                        "ip_flags": 0,
+                        "ip_ttl": 0,
+                        "ip_protocol": "",
+                        "sport": 0,
+                        "dport": 0,
+                        "tcp_flags": 0,
+                        "window": 0}
 
-        # filtering
-        if IPv6 in pkt:
-            continue
-        if ARP in pkt:
-            continue
+            # filtering
+            if IPv6 in pkt:
+                continue
+            if ARP in pkt:
+                continue
 
-        features["timestamp"] = float(pkt.time)
+            features["timestamp"] = float(pkt.time)
 
-        features["packet_length"] = len(pkt)
+            features["packet_length"] = len(pkt)
 
-        try:
-            features["iat"] = features["timestamp"] - pkt_features[-1]["timestamp"]
-        except IndexError:
-            features["iat"] = 0.0
-        
-        features["h"] = entropy(bytearray(raw(pkt)))
+            try:
+                features["iat"] = features["timestamp"] - pkt_features[-1]["timestamp"]
+            except IndexError:
+                features["iat"] = 0.0
 
-        if pkt.haslayer(IP):
-            lyr = pkt.getlayer(IP)
-            features["ip_src"] = lyr.src
-            features["ip_dst"] = lyr.dst
-            features["ip_tos"] = lyr.tos
-            features["ip_flags"] = lyr.flags.value
-            features["ip_ttl"] = lyr.ttl
+            features["h"] = entropy(bytearray(raw(pkt)))
 
-            if pkt.haslayer(TCP):
-                lyr = pkt.getlayer(TCP)
-                features["ip_protocol"] = "TCP"
-                features["sport"] = lyr.sport
-                features["dport"] = lyr.dport
-                features["tcp_flags"] = lyr.flags.value
-                features["window"] = lyr.window
-            elif pkt.haslayer(UDP):
-                lyr = pkt.getlayer(UDP)
-                features["ip_protocol"] = "UDP"
-                features["sport"] = lyr.sport
-                features["dport"] = lyr.dport
-            elif pkt.haslayer(ICMP):
-                lyr = pkt.getlayer(ICMP)
-                features["ip_protocol"] = "ICMP"
-        
-        pkt_features.append(features)
+            if pkt.haslayer(IP):
+                lyr = pkt.getlayer(IP)
+                features["ip_src"] = lyr.src
+                features["ip_dst"] = lyr.dst
+                features["ip_tos"] = lyr.tos
+                features["ip_flags"] = lyr.flags.value
+                features["ip_ttl"] = lyr.ttl
+
+                if pkt.haslayer(TCP):
+                    lyr = pkt.getlayer(TCP)
+                    features["ip_protocol"] = "TCP"
+                    features["sport"] = lyr.sport
+                    features["dport"] = lyr.dport
+                    features["tcp_flags"] = lyr.flags.value
+                    features["window"] = lyr.window
+                elif pkt.haslayer(UDP):
+                    lyr = pkt.getlayer(UDP)
+                    features["ip_protocol"] = "UDP"
+                    features["sport"] = lyr.sport
+                    features["dport"] = lyr.dport
+                elif pkt.haslayer(ICMP):
+                    lyr = pkt.getlayer(ICMP)
+                    features["ip_protocol"] = "ICMP"
+            
+            pkt_features.append(features)
 
     return pd.DataFrame(pkt_features)
 
