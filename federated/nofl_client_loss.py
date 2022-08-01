@@ -1,87 +1,13 @@
-from feature_extractor import pcap_to_dataframe, preprocess_dataframe
-from collections import OrderedDict
-from typing import Dict, List, Tuple, Union
+import argparse
+from feature_extractor import port_basic_three_map, port_hierarchy_map, port_hierarchy_map_iot
+from model_ae import Autoencoder, load_data, test
 from pathlib import Path
-import hashlib
-import sys
 import numpy as np
-import pandas as pd
-
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
-from torch.utils.data import DataLoader, TensorDataset
 
-from sklearn.model_selection import train_test_split
-
-# parallel --verbose --bar --jobs 20 python nofl_client_loss.py {1} ::: *.pcap
-
-
-def state_dict_hash(state_dict: Union['OrderedDict[str, torch.Tensor]', Dict[str, torch.Tensor]]) -> str:
-    h = hashlib.md5()
-    for k, v in state_dict.items():
-        h.update(k.encode("utf-8"))
-        h.update(v.cpu().numpy().tobytes())
-    return h.hexdigest()
-
-
-def split_train_valid_eval(df :pd.DataFrame, eval_split=None, train_size=0.8):
-    if eval_split:
-        df_train_valid, df_eval = train_test_split(df, shuffle=False, train_size=eval_split)
-        df_train, df_valid = train_test_split(df_train_valid, shuffle=False, train_size=train_size)
-        return df_train, df_valid, df_eval
-    else:
-        df_train, df_valid = train_test_split(df, shuffle=False, train_size=train_size)
-        return df_train, df_valid, None
-
-
-def load_data(pcap_filename, cache_tensors=True):
-    cache_filename = Path(pcap_filename + "_cache_tensors.pt")
-    if cache_tensors and cache_filename.is_file():
-        print("loading data from cache: ", cache_filename)
-        serialize_tensors = torch.load(cache_filename)
-        X_train = serialize_tensors["X_train"]
-        X_valid = serialize_tensors["X_valid"]
-    else:
-        df = pcap_to_dataframe(pcap_filename)
-        df = preprocess_dataframe(df)
-        df = df.drop(columns=["timestamp"])
-        df_train, df_valid, _ = split_train_valid_eval(df, train_size=0.8)
-        X_train = torch.from_numpy(df_train.to_numpy(dtype=np.float32))
-        X_valid = torch.from_numpy(df_valid.to_numpy(dtype=np.float32))
-        if cache_tensors:
-            serialize_tensors = {"X_train": X_train, "X_valid": X_valid}
-            torch.save(serialize_tensors, cache_filename)
-    
-    bs = 32
-    train_dl = DataLoader(X_train, batch_size=bs, shuffle=True)
-    valid_dl = DataLoader(X_valid, batch_size=bs, shuffle=False)
-    return train_dl, valid_dl
-
-
-class Autoencoder(nn.Module):
-    def __init__(self):
-        super(Autoencoder, self).__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(34, 17), # 26,12
-            # nn.Dropout(0.05), # !
-            nn.ReLU(), # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(17, 8), # 12,4
-            nn.ReLU()  # nn.Sigmoid() # nn.Tanh(), nn.Sigmoid(), nn.ReLU()
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(8, 17), # 4,12
-            nn.ReLU(), # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(17, 34), # 12,26
-            # nn.Dropout(0.05), # !
-            nn.ReLU() # nn.ReLU()
-        )
-
-    def forward(self, x):
-        latent = self.encoder(x)
-        decoded = self.decoder(latent)
-        return decoded
+# parallel --verbose --bar --jobs 10 python nofl_client_loss.py {1} ::: *.pcap
 
 
 def fit(model, optimizer, loss_function, epochs, train_generator, valid_generator):
@@ -99,7 +25,7 @@ def fit(model, optimizer, loss_function, epochs, train_generator, valid_generato
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-        
+
         print(f"epoch {epoch+1}/{epochs}: train loss {train_loss_acc/len(train_generator):.8f}")
         epoch_list.append(epoch)
         loss_list.append(train_loss_acc/len(train_generator))
@@ -107,31 +33,42 @@ def fit(model, optimizer, loss_function, epochs, train_generator, valid_generato
     return epoch_list, loss_list, valid_loss_list
 
 
-def test(model, loss_function, valid_generator):
-    valid_loss_acc = 0.0
-    with torch.no_grad():
-        model.eval()
-        for x_batch in valid_generator:
-            preds = model(x_batch)
-            valid_loss_acc += loss_function(preds, x_batch).item()
-    print(f"valid loss {valid_loss_acc/len(valid_generator):.8f}")
-    return valid_loss_acc/len(valid_generator)
+parser = argparse.ArgumentParser(description="NoFL client.")
+parser.add_argument("-b", "--base", type=lambda p: Path(p).absolute(), default=Path("./NoFLbase").absolute())
+parser.add_argument("-d", "--dimensions", type=int, default=27)
+parser.add_argument("-e", "--epochs", type=int, default=5)
+parser.add_argument("--opt", type=str, required=True, choices=("adam", "sgd"))
+parser.add_argument("--lr", type=float, default=1e-3)
+parser.add_argument("--b1", type=float, default=0.9)
+parser.add_argument("--b2", type=float, default=0.999)
+parser.add_argument("--eps", type=float, default=1e-08)
+parser.add_argument("--wdecay", type=float, default=1e-5)
+parser.add_argument("--momentum", type=float, default=0.0)
+parser.add_argument("pcap")
+args = parser.parse_args()
 
 
-
-model = Autoencoder()
+args.base.mkdir(parents=True, exist_ok=True)
+model = Autoencoder(args.dimensions)
 torch.set_num_threads(1)
 
-pcap_filename = sys.argv[1]
-print(f"Loading data {pcap_filename}...")
-train_dl, valid_dl = load_data(pcap_filename)
+print(f"Loading data {args.pcap}...")
+train_dl, valid_dl = load_data(args.pcap, cache_tensors=True, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
 
-num_epochs = 50
-opt = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+num_epochs = args.epochs  # num_local_epochs x num_fl_rounds
+
+if args.opt == "adam":
+    opt = optim.Adam(model.parameters(), lr=args.lr, betas=(args.b1, args.b2), eps=args.eps, weight_decay=args.wdecay)
+else:  # args.opt == "sgd"
+    opt = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.wdecay)
+print("Opt: ", opt)
+
 loss_func = F.mse_loss
 
 # train
-print(f"Training for {num_epochs} epochs in {pcap_filename}, number of samples {len(train_dl)}.")
+print(f"Training for {num_epochs} epochs in {args.pcap}, number of samples {len(train_dl)}.")
 epoch_l, loss_l, valid_loss_l = fit(model, optimizer=opt, loss_function=loss_func, epochs=num_epochs, train_generator=train_dl, valid_generator=valid_dl)
-np.savez(f"results_nofl_epoch_losses_ae_{Path(pcap_filename).stem}.npz", np.array(epoch_l), np.array(loss_l), np.array(valid_loss_l))
 
+out_fname = args.base / f"results_nofl_epoch_losses_ae_{Path(args.pcap).stem}.npz"
+print(f"Serializing results to {out_fname}")
+np.savez(out_fname, np.array(epoch_l), np.array(loss_l), np.array(valid_loss_l))
