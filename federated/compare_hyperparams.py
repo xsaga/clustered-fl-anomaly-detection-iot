@@ -9,6 +9,10 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 
+def get_exp_key(d, k):
+    return list(filter(lambda x: k in x, d.keys()))
+
+
 base_path = Path("./")
 exp_pattern = re.compile("trial([0-9]+)")
 
@@ -75,4 +79,11 @@ print(np.log10(df))
 sns.heatmap(np.log10(df), annot=True, cmap=sns.color_palette("Blues", as_cmap=True).reversed())
 plt.yticks(rotation=0)
 plt.tight_layout()
+plt.show()
+
+for exp_name in get_exp_key(all_experiments, "adam1lr0p001_sgdlr1p5"):
+    eval_loss = all_experiments[exp_name]["eval"]
+    plt.plot(range(1, len(eval_loss)+1), eval_loss, label=exp_name, marker=next(markers), linestyle="dashed")
+plt.legend()
+plt.yscale("log")
 plt.show()

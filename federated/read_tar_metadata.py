@@ -1,10 +1,10 @@
 import numpy as np
 import os
-import torch
 from pathlib import Path
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
 
+localepochs = 1  # 4
 global_models_dir_path = Path("./models_global")
 
 global_round_dirs = [p for p in global_models_dir_path.iterdir() if p.is_dir() and p.match("round_*")]
@@ -48,7 +48,6 @@ min_loss = np.min(losses, axis=0)
 max_loss = np.max(losses, axis=0)
 avg_loss = np.mean(losses, axis=0)
 
-localepochs = 4
 
 # poner doble eje X
 ## plt.scatter(list(range(1, len(global_round_dirs))), fl_weighted_losses, color="blue")
@@ -92,28 +91,28 @@ plt.tight_layout()
 plt.show()
 
 
-rcParams["font.family"] = ["Times New Roman"]
-rcParams["font.size"] = 4
-rcParams["xtick.labelsize"] = 6
-rcParams["ytick.labelsize"] = 6
-rcParams["axes.labelsize"] = 6
-rcParams["legend.fontsize"] = 4
-rcParams["lines.linewidth"] = 0.75
-rcParams["lines.markersize"] = 1
-rcParams["boxplot.boxprops.linewidth"] = 0.1 # 1
-rcParams['boxplot.whiskerprops.linewidth'] = 0.1 # 1
-rcParams["boxplot.capprops.linewidth"] = 0.1 # 1
-rcParams["boxplot.meanprops.linewidth"] = 0.1 # 1
-rcParams["boxplot.medianprops.linewidth"] = 0.1 # 1
-rcParams["boxplot.flierprops.markeredgewidth"] = 1 # 1
-rcParams["boxplot.flierprops.markersize"] = 1 # 6
-rcParams["boxplot.meanprops.markersize"] = 1 # 6
-rcParams["xtick.major.size"] = 3.5//2 # 3.5
-rcParams["ytick.major.size"] = 3.5//2 # 3.5
-rcParams["xtick.minor.size"] = 2//2 # 2.0
-rcParams["ytick.minor.size"] = 2//2 # 2.0
-plot_width = 2.285  # in
-plot_height = 1.714
+# rcParams["font.family"] = ["Times New Roman"]
+# rcParams["font.size"] = 4
+# rcParams["xtick.labelsize"] = 6
+# rcParams["ytick.labelsize"] = 6
+# rcParams["axes.labelsize"] = 6
+# rcParams["legend.fontsize"] = 4
+# rcParams["lines.linewidth"] = 0.75
+# rcParams["lines.markersize"] = 1
+# rcParams["boxplot.boxprops.linewidth"] = 0.1 # 1
+# rcParams['boxplot.whiskerprops.linewidth'] = 0.1 # 1
+# rcParams["boxplot.capprops.linewidth"] = 0.1 # 1
+# rcParams["boxplot.meanprops.linewidth"] = 0.1 # 1
+# rcParams["boxplot.medianprops.linewidth"] = 0.1 # 1
+# rcParams["boxplot.flierprops.markeredgewidth"] = 1 # 1
+# rcParams["boxplot.flierprops.markersize"] = 1 # 6
+# rcParams["boxplot.meanprops.markersize"] = 1 # 6
+# rcParams["xtick.major.size"] = 3.5//2 # 3.5
+# rcParams["ytick.major.size"] = 3.5//2 # 3.5
+# rcParams["xtick.minor.size"] = 2//2 # 2.0
+# rcParams["ytick.minor.size"] = 2//2 # 2.0
+# plot_width = 2.285  # in
+# plot_height = 1.714
 
 
 # === jumps in nofl boxplot === (simplify plot)
@@ -128,7 +127,8 @@ ax2.set_xlim((localepochs, len(epochs)))
 
 nofl_color = "#ff7f0e"
 nofl_line, = ax2.plot(epochs+1, avg_loss[::], color=nofl_color, marker="", label="Isolated edge mean loss")
-nofl_bp = ax2.boxplot(losses[:,::], widths=2.0, showmeans=True, patch_artist=True, boxprops=dict(facecolor=nofl_color, edgecolor=nofl_color, hatch="/", alpha=0.4), capprops=dict(color=nofl_color), whiskerprops=dict(color=nofl_color), flierprops=dict(color=nofl_color, marker="v", markeredgecolor=nofl_color, alpha=0.2), medianprops=dict(color=nofl_color), meanprops=dict(markerfacecolor=nofl_color, marker="v", markeredgecolor=nofl_color))
+nofl_bp = ax2.boxplot(losses[:,::], showmeans=True, patch_artist=True, boxprops=dict(facecolor=nofl_color, edgecolor=nofl_color, hatch="/", alpha=0.4), capprops=dict(color=nofl_color), whiskerprops=dict(color=nofl_color), flierprops=dict(color=nofl_color, marker="v", markeredgecolor=nofl_color, alpha=0.2), medianprops=dict(color=nofl_color), meanprops=dict(markerfacecolor=nofl_color, marker="v", markeredgecolor=nofl_color))
+#        "           (losses[:,::], widths=2.0, showmeans=True,
 
 fl_color = "#1f77b4"
 fl_line, = ax.plot(list(range(1, len(global_round_dirs))), fl_weighted_losses, color=fl_color, marker="^", label="Federated learning mean loss")
@@ -137,7 +137,8 @@ fl_bp = ax.boxplot(fl_losses_raw, showmeans=True, patch_artist=True, boxprops=di
 
 plt.yscale("log")
 
-axlabels = [str(l) if l%2==0 else "" for l in range(1, len(global_round_dirs))]
+#                     l%2==0
+axlabels = [str(l) if l%5==0 else "" for l in range(1, len(global_round_dirs))]
 axlabels[0] = str(range(1, len(global_round_dirs))[0]) # == "1"
 ax.set_xticklabels(axlabels)
 
@@ -155,10 +156,10 @@ nofl_line_legend = plt.Line2D([0], [0])
 nofl_line_legend.update_from(nofl_line)
 nofl_line_legend.set_marker("v")
 fig.legend([fl_bp["boxes"][0], fl_line, nofl_bp["boxes"][0], nofl_line_legend], ["Federated learning", fl_line.get_label(), "Isolated edge", nofl_line_legend.get_label()], loc="upper right", bbox_to_anchor=(1, 1), bbox_transform=ax.transAxes)
-fig.set_size_inches(plot_width, plot_height)
+#fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
-# plt.show()
-plt.savefig(os.path.expanduser(f"~/cluster_mqtt2_e{localepochs}.pdf"), format="pdf")
+plt.show()
+#plt.savefig(os.path.expanduser(f"~/cluster_mqtt2_e{localepochs}.pdf"), format="pdf")
 
 ####
 #for i in range(len(nofl_files)):
