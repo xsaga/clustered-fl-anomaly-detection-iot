@@ -4,6 +4,10 @@ set -e
 FIRSTPCAP=$1
 LASTPCAP=$2
 
+echo "Info:"
+capinfos -c "$FIRSTPCAP"
+capinfos -c "$LASTPCAP"
+
 echo "Merging: $FIRSTPCAP <---> $LASTPCAP"
 
 # last pcap start time

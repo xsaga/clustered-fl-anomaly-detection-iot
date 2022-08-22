@@ -4,34 +4,21 @@ from Kitsune import Kitsune
 import numpy as np
 import time
 import pandas as pd
-from matplotlib import pyplot as plt
-
-
-def label_by_ip_2(df, rules, default=-1):
-    """
-    example:
-    rules = [("192.168.0.2", True, "192.168.0.10", True, 0),  # if src add IS 192.168.0.2 and dst addr IS 192.168.0.10 label as 0
-             ("192.168.0.2", True, "192.168.0.10", False, 1)] # if src add IS 192.168.0.2 and dst addr IS NOT 192.168.0.10 label as 1
-    """
-    labels = np.full(df.shape[0], default)
-    for srcip, srcinclude, dstip, dstinclude, label in rules:
-        src_cmp = np.equal if srcinclude else np.not_equal
-        dst_cmp = np.equal if dstinclude else np.not_equal
-        mask = np.logical_and(src_cmp(df["ip.src"], srcip), dst_cmp(df["ip.dst"], dstip))
-        labels[mask] = label
-
-    return labels
 
 
 # Load pcap
 # The first XXX observations are clean...
-path = "merged.pcap" #the pcap, pcapng, or tsv file to process.
-packet_limit = np.Inf #the number of packets to process
+#the pcap, pcapng, or tsv file to process.
+path = "merged.pcap"
+#the number of packets to process
+packet_limit = np.Inf
 
 # KitNET params:
 maxAE = 10 #maximum size for any autoencoder in the ensemble layer
-FMgrace = 443   # 5000 #the number of instances taken to learn the feature mapping (the ensemble's architecture)
-ADgrace = 2000  # 50000 #the number of instances used to train the anomaly detector (ensemble itself)
+# 5000 #the number of instances taken to learn the feature mapping (the ensemble's architecture)
+FMgrace = 244
+# 50000 #the number of instances used to train the anomaly detector (ensemble itself)
+ADgrace = 2443-FMgrace
 
 # Build Kitsune
 K = Kitsune(path,packet_limit,maxAE,FMgrace,ADgrace)
@@ -65,7 +52,6 @@ while True:
 stop = time.time()
 print("Complete. Time elapsed: "+ str(stop - start))
 
-labels = label_by_ip_2(df, rules, -1)
-plt.scatter(list(range(1, total_packets+1)), RMSEs, s=0.5, c=labels, label=labels)
-plt.legend()
-plt.show()
+# serialize results
+print("Serializing RMSEs results")
+np.save(path+".rmse.npy", RMSEs)
