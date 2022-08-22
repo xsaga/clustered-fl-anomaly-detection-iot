@@ -13,8 +13,19 @@ def get_exp_key(d, k):
     return list(filter(lambda x: k in x, d.keys()))
 
 
-base_path = Path("./")
-exp_pattern = re.compile("trial([0-9]+)")
+rcParams["font.family"] = ["Times New Roman"]
+rcParams["font.size"] = 8
+rcParams["xtick.labelsize"] = 8
+rcParams["ytick.labelsize"] = 8
+rcParams["axes.labelsize"] = 8
+rcParams["legend.fontsize"] = 8
+# rcParams["lines.linewidth"] = 0.75
+rcParams["lines.markersize"] = 4
+plot_width = 3.487  # in
+plot_height = 3.487
+
+base_path = Path("./cluster_mqtt/")
+exp_pattern = re.compile("lrgridsearchA([0-9]+)")
 
 experiment_files = [d for d in base_path.iterdir() if d.is_dir() and re.match(exp_pattern, d.name)]
 experiment_files = sorted(experiment_files, key=lambda p: int(re.match(exp_pattern, p.name).group(1)))
@@ -44,27 +55,33 @@ for experiment in experiment_files:
     all_experiments[experiment_name] = {"eval": experiment_eval_losses, "train": experiment_train_losses}
 
 markers = itertools.cycle(("o", "v", "^", "<", ">", "s", "p", "P", "*", "h", "X", "D", "1", "2", "3", "4", "+", "x"))
+fig, ax = plt.subplots()
 for exp_name, losses in all_experiments.items():
+    label_name = re.match(exp_pattern, exp_name).group(1)
     eval_loss = losses["eval"]
-    plt.plot(range(1, len(eval_loss)+1), eval_loss, label=exp_name, marker=next(markers), linestyle="dashed")
+    ax.plot(range(1, len(eval_loss)+1), eval_loss, label=label_name, marker=next(markers), linestyle="dashed")
 
-plt.xlim(left=1)
+ax.set_xlim(left=1)
 axlabels = [str(l) if l%10==0 else "" for l in np.arange(fl_rounds)]
 axlabels[0] = ""
 axlabels[1] = "1"
-plt.xticks(np.arange(fl_rounds), axlabels)
-plt.legend(loc="upper right")
-plt.xlabel("FL rounds")
-plt.ylabel("evaluation loss")
-plt.yscale("log")
-plt.tight_layout()
-plt.show()
+ax.set_xticks(np.arange(fl_rounds), axlabels)
+ax.legend(loc="upper right", title="Trial", ncol=2)
+ax.set_xlabel("FL rounds")
+ax.set_ylabel("evaluation loss")
+ax.set_yscale("log")
+fig.set_size_inches(plot_width, plot_height)
+fig.tight_layout()
+# fig.show()
+fig.savefig("cluster_mqtt_clientopt_serveropt.pdf", format="pdf")
 
 
 res={}
 for key, val in all_experiments.items():
     subkey1 = key.split("_")[1]
     subkey2 = key.split("_")[2]
+    subkey1 = subkey1.split("lr")[-1].replace("p", ".")
+    subkey2 = subkey2.split("lr")[-1].replace("p", ".")
     if subkey1 in res:
         res[subkey1][subkey2] = val["eval"][-1]
     else:
@@ -76,10 +93,17 @@ df.sort_index(axis="columns", inplace=True)
 print(np.log10(df))
 
 # https://stackoverflow.com/questions/27037241/changing-the-rotation-of-tick-labels-in-seaborn-heatmap
-sns.heatmap(np.log10(df), annot=True, cmap=sns.color_palette("Blues", as_cmap=True).reversed())
+sns.heatmap(np.log10(df), annot=True, fmt=".3g", cmap=sns.color_palette("Blues", as_cmap=True).reversed())
 plt.yticks(rotation=0)
+plt.xlabel("client learning rate")
+plt.ylabel("server learning rate")
+fig = plt.gcf()
+fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
-plt.show()
+#plt.show()
+plt.savefig("cluster_mqtt_lrgs_adam1_sgd.pdf", format="pdf")
+
+
 
 for exp_name in get_exp_key(all_experiments, "adam1lr0p001_sgdlr1p5"):
     eval_loss = all_experiments[exp_name]["eval"]
