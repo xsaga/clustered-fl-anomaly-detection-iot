@@ -15,7 +15,7 @@ do
 
     ##### Experiment
     echo "***** epochs = $epochs ***** Directory: $experiment_name"
-    echo "Client: ${client_opt_args}"
+    echo "Client: ${opt_args}"
 
     parallel --verbose --bar --jobs 6 python nofl_client_loss.py -b "$experiment_name" -e $epochs ${opt_args} {1} ::: *.pcap
 

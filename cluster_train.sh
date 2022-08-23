@@ -11,7 +11,7 @@ else
     python create_initial_random_model_ae.py 69
 fi
 
-echo $(ls *.pcap | wc -l) training files found.
+echo "$(ls -- *.pcap | wc -l)" training files found.
 
 date '+%s' > start.timestamp
 
@@ -21,7 +21,7 @@ do
     mkdir clus_${EPSILON}epochs_port_hier_iot
     parallel --verbose --bar --ungroup --jobs 10 python {1} -d 69 -e $EPSILON {2} ::: cluster_client_ae.py ::: *.pcap
     sleep 5
-    mv *_ae.pt clus_${EPSILON}epochs_port_hier_iot
+    mv -- *_ae.pt clus_${EPSILON}epochs_port_hier_iot
     cp clus_${EPSILON}epochs_port_hier_iot/initial_random_model_ae.pt .
 done
 
