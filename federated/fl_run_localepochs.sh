@@ -9,7 +9,7 @@ FL_ROUNDS=100
 client_opt_args="-d 69 --clientopt adam --lr 1e-3 --b1 0.9 --b2 0.999 --eps 1e-08 --wdecay 1e-5"
 server_opt_args="-d 69 --serveropt sgd --lr 1 --wdecay 0 --momentum 0"
 
-for epochs in 2 4 8
+for epochs in 1 2 4 8
 do
 
     experiment_name=E_${epochs}
