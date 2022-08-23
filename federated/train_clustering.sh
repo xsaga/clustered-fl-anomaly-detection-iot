@@ -8,13 +8,21 @@ if [ -f "initial_random_model_ae.pt" ]; then
     echo "initial_random_model_ae.pt exists."
 else
     echo "Creating initial_random_model_ae.pt"
-    python create_initial_random_model_ae.py 27
+    python create_initial_random_model_ae.py 69
 fi
 
 echo $(ls *.pcap | wc -l) training files found.
 
 date '+%s' > start.timestamp
 
-parallel --verbose --bar --ungroup --jobs 32 python {1} {2} {3} ::: client_cluster_ae.py client_cluster_lstm.py ::: *.pcap ::: 1 2 4 8 16 32
+for EPSILON in 1 2 4 8 16 32
+do
+    echo "========== $EPSILON =========="
+    mkdir clus_${EPSILON}epochs_port_hier_iot
+    parallel --verbose --bar --ungroup --jobs 10 python {1} -d 69 -e $EPSILON {2} ::: client_cluster_ae.py ::: *.pcap
+    sleep 5
+    mv *_ae.pt clus_${EPSILON}epochs_port_hier_iot
+    cp clus_${EPSILON}epochs_port_hier_iot/initial_random_model_ae.pt .
+done
 
 date '+%s' > end.timestamp
