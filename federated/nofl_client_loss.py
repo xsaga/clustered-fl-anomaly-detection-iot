@@ -7,8 +7,6 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-# parallel --verbose --bar --jobs 10 python nofl_client_loss.py {1} ::: *.pcap
-
 
 def fit(model, optimizer, loss_function, epochs, train_generator, valid_generator):
     epoch_list = []
