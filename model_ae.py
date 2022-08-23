@@ -23,7 +23,7 @@ def state_dict_hash(state_dict: Union['OrderedDict[str, torch.Tensor]', Dict[str
     return h.hexdigest()
 
 
-def split_train_valid_eval(df :pd.DataFrame, eval_split=None, train_size=0.8):
+def split_train_valid_eval(df: pd.DataFrame, eval_split=None, train_size=0.8):
     if eval_split:
         df_train_valid, df_eval = train_test_split(df, shuffle=False, train_size=eval_split)
         df_train, df_valid = train_test_split(df_train_valid, shuffle=False, train_size=train_size)
@@ -33,7 +33,7 @@ def split_train_valid_eval(df :pd.DataFrame, eval_split=None, train_size=0.8):
         return df_train, df_valid, None
 
 
-def load_data(pcap_filename, cache_tensors=True, port_mapping = None, sport_bins = None, dport_bins = None):
+def load_data(pcap_filename, cache_tensors=True, port_mapping=None, sport_bins=None, dport_bins=None):
     cache_filename = Path(pcap_filename + "_cache_tensors.pt")
     if cache_tensors and cache_filename.is_file():
         print("loading data from cache: ", cache_filename)
@@ -50,7 +50,7 @@ def load_data(pcap_filename, cache_tensors=True, port_mapping = None, sport_bins
         if cache_tensors:
             serialize_tensors = {"X_train": X_train, "X_valid": X_valid}
             torch.save(serialize_tensors, cache_filename)
-    
+
     bs = 32
     train_dl = DataLoader(X_train, batch_size=bs, shuffle=True)
     valid_dl = DataLoader(X_valid, batch_size=bs, shuffle=False)
@@ -61,18 +61,18 @@ class Autoencoder(nn.Module):
     def __init__(self, num_input):
         super(Autoencoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(num_input, num_input//2), # 26,12
+            nn.Linear(num_input, num_input // 2),  # 26,12
             # nn.Dropout(0.05), # !
-            nn.ReLU(), # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(num_input//2, num_input//4), # 12,4
+            nn.ReLU(),  # nn.LeakyReLU(), nn.ReLU()
+            nn.Linear(num_input // 2, num_input // 4),  # 12,4
             nn.ReLU()  # nn.Sigmoid() # nn.Tanh(), nn.Sigmoid(), nn.ReLU()
         )
         self.decoder = nn.Sequential(
-            nn.Linear(num_input//4, num_input//2), # 4,12
-            nn.ReLU(), # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(num_input//2, num_input), # 12,26
+            nn.Linear(num_input // 4, num_input // 2),  # 4,12
+            nn.ReLU(),  # nn.LeakyReLU(), nn.ReLU()
+            nn.Linear(num_input // 2, num_input),  # 12,26
             # nn.Dropout(0.05), # !
-            nn.ReLU() # nn.ReLU()
+            nn.ReLU()  # nn.ReLU()
         )
 
     def forward(self, x):
@@ -93,9 +93,9 @@ def fit(model, optimizer, loss_function, epochs, train_generator):
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-        
+
         print(f"epoch {epoch+1}/{epochs}: train loss {train_loss_acc/len(train_generator):.8f}")
-    return train_loss_acc/len(train_generator)  # type: ignore
+    return train_loss_acc / len(train_generator)  # type: ignore
 
 
 def test(model, loss_function, valid_generator):
@@ -106,4 +106,4 @@ def test(model, loss_function, valid_generator):
             preds = model(x_batch)
             valid_loss_acc += loss_function(preds, x_batch).item()
     print(f"valid loss {valid_loss_acc/len(valid_generator):.8f}")
-    return valid_loss_acc/len(valid_generator)
+    return valid_loss_acc / len(valid_generator)

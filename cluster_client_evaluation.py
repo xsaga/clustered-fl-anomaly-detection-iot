@@ -25,7 +25,7 @@ from sklearn.metrics import rand_score, adjusted_rand_score, adjusted_mutual_inf
 def count_cluster_items(cluster_predicted, item_labels):
     result = {}
     for i in range(cluster_predicted.max() + 1):
-        items_in_cluster = item_labels[cluster_predicted==i]
+        items_in_cluster = item_labels[cluster_predicted == i]
         result[i] = list(zip(*np.unique(items_in_cluster, return_counts=True)))
     return result
 
@@ -74,7 +74,7 @@ pca_cluster = PCA(n_components=0.9)  # explain 90% var
 reduced_weights = pca_cluster.fit_transform(weights)
 print(reduced_weights.shape)
 
-cluster_numbers = list(range(2, min(41, weights.shape[0]-1)))
+cluster_numbers = list(range(2, min(41, weights.shape[0] - 1)))
 kmeans_labels = dict()
 score_ss = []
 score_ch = []
@@ -111,7 +111,7 @@ if args.show:
 else:
     fig.set_size_inches(plot_width, plot_height)
     fig.tight_layout()
-    fig.savefig(args.dir/"score_unsupervised.pdf", format="pdf")
+    fig.savefig(args.dir / "score_unsupervised.pdf", format="pdf")
 
 device_name_map = {"air-quality": 0,
                    "building-monitor": 1,
@@ -150,7 +150,7 @@ if args.show:
 else:
     fig.set_size_inches(plot_width, plot_height)
     fig.tight_layout()
-    fig.savefig(args.dir/"score_groundtruth.pdf", format="pdf")
+    fig.savefig(args.dir / "score_groundtruth.pdf", format="pdf")
 
 best_n_clusters = args.clusters if args.clusters > 0 else int(input("Selected number of clusters? "))
 print("Selected ", best_n_clusters, " clusters")
@@ -165,12 +165,14 @@ reduced_2d = pca.transform(weights)
 
 cmap = cm.get_cmap("viridis", best_n_clusters)
 
+
 def select_position(positions, rest):
     # find a better position to place the text labels
     distances = scipy.spatial.distance.cdist(positions, rest)
     closest = distances.min(axis=1)
     selection = np.argmax(closest)
     return positions[selection]
+
 
 fig, ax = plt.subplots()
 ax.scatter(reduced_2d[:, 0], reduced_2d[:, 1], c=kmeans_labels[best_n_clusters], alpha=0.4, linewidth=0.5)
@@ -192,8 +194,8 @@ for i in range(best_n_clusters):
 
     options = [[clus_mean[0], red_clus[:, 1].max() + 0.25],
                [clus_mean[0], red_clus[:, 1].min() - 0.25]]
-              # [red_clus[:, 0].max() + 0.2, clus_mean[1]],
-              # [red_clus[:, 0].min() - 0.2, clus_mean[1]]]
+    # [red_clus[:, 0].max() + 0.2, clus_mean[1]],
+    # [red_clus[:, 0].min() - 0.2, clus_mean[1]]]
     # text_x, text_y = clus_mean[0], clus_ymax + 0.2
     text_x, text_y = select_position(options, reduced_2d[kmeans_labels[best_n_clusters] != i])
     ax.text(text_x, text_y, s=clus_text, c="black", bbox=dict(facecolor=cmap(i), edgecolor=cmap(i), alpha=0.25, boxstyle="round", pad=0.1), horizontalalignment="center")
@@ -210,4 +212,4 @@ if args.show:
 else:
     fig.set_size_inches(plot_width, plot_height)
     fig.tight_layout()
-    fig.savefig(args.dir/"2d_map.pdf", format="pdf")
+    fig.savefig(args.dir / "2d_map.pdf", format="pdf")

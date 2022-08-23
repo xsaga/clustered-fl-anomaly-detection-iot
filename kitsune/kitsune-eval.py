@@ -66,7 +66,7 @@ assert RMSEs.shape[0] == df.shape[0]
 
 labels = label_by_ip(df, rules, 10)
 first_nonzero = np.nonzero(RMSEs)[0][0]
-th = np.max(RMSEs[first_nonzero:first_nonzero+100])
+th = np.max(RMSEs[first_nonzero:first_nonzero + 100])
 
 rmse_df = pd.DataFrame({"ts": df["frame.time_epoch"][first_nonzero:], "RMSE": RMSEs[first_nonzero:], "label": labels[first_nonzero:]})
 rmse_df["packet type"] = rmse_df["label"].map(rules_map)
@@ -88,10 +88,10 @@ fig.show()
 # === metrics ===
 RMSEs_red = RMSEs[first_nonzero:]
 labels_red = labels[first_nonzero:]
-labels_pred = (RMSEs_red > th*1.05)+0
-labels_gnd_truth = (labels_red > 0)+0
-print(confusion_matrix(labels_gnd_truth, labels_pred, labels=[1,0]))  # 0:normal, 1:attack; positive class is attack
-tp, fn, fp, tn = confusion_matrix(labels_gnd_truth, labels_pred, labels=[1,0]).ravel()
+labels_pred = (RMSEs_red > th * 1.05) + 0
+labels_gnd_truth = (labels_red > 0) + 0
+print(confusion_matrix(labels_gnd_truth, labels_pred, labels=[1, 0]))  # 0:normal, 1:attack; positive class is attack
+tp, fn, fp, tn = confusion_matrix(labels_gnd_truth, labels_pred, labels=[1, 0]).ravel()
 print(f"TP, FN, FP, TN = {tp}, {fn}, {fp}, {tn}")
 print("Accuracy: ", accuracy_score(labels_gnd_truth, labels_pred))
 print("F1: ", f1_score(labels_gnd_truth, labels_pred, pos_label=1))

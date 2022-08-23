@@ -93,7 +93,7 @@ timestamps_valid_attack = df_valid_attack["timestamp"].values
 df_valid_attack = df_valid_attack.drop(columns=["timestamp"])
 results_valid_attack = reconstruction_error(model, loss_func, torch.from_numpy(df_valid_attack.to_numpy(dtype=np.float32)))
 
-results_df_valid_attack = pd.DataFrame({"ts":timestamps_valid_attack, "rec_err":results_valid_attack, "label": labels_valid_attack})
+results_df_valid_attack = pd.DataFrame({"ts": timestamps_valid_attack, "rec_err": results_valid_attack, "label": labels_valid_attack})
 results_df_valid_attack["packet type"] = results_df_valid_attack["label"].map(rules_map)
 fig, ax = plt.subplots()
 sns.scatterplot(data=results_df_valid_attack, x="ts", y="rec_err", hue="packet type", linewidth=0, s=12, alpha=0.3, ax=ax, rasterized=True)
@@ -108,10 +108,10 @@ fig.tight_layout()
 fig.show()
 
 # === metrics ===
-labels_pred = (results_valid_attack > th*1.05)+0
-labels_gnd_truth = (labels_valid_attack > 0)+0
-print(confusion_matrix(labels_gnd_truth, labels_pred, labels=[1,0]))  # 0:normal, 1:attack; positive class is attack
-tp, fn, fp, tn = confusion_matrix(labels_gnd_truth, labels_pred, labels=[1,0]).ravel()
+labels_pred = (results_valid_attack > th * 1.05) + 0
+labels_gnd_truth = (labels_valid_attack > 0) + 0
+print(confusion_matrix(labels_gnd_truth, labels_pred, labels=[1, 0]))  # 0:normal, 1:attack; positive class is attack
+tp, fn, fp, tn = confusion_matrix(labels_gnd_truth, labels_pred, labels=[1, 0]).ravel()
 print("tp, fn, fp, tn = ", tp, ",", fn, ",", fp, ",", tn)
 print("Accuracy: ", accuracy_score(labels_gnd_truth, labels_pred))
 print("F1: ", f1_score(labels_gnd_truth, labels_pred, pos_label=1))
@@ -134,9 +134,9 @@ plt.show()
 
 
 # tests, ignore #
-## only for vector plots
+# only for vector plots
 from scipy import stats
-sec_since = timestamps-timestamps[0]
+sec_since = timestamps - timestamps[0]
 
 # reduce number of plot elements to control the output svg, pdf file size
 
@@ -145,12 +145,12 @@ X = np.vstack([timestamps, results])
 kde = stats.gaussian_kde(X)
 Z = kde(X)
 
-Z_s = (Z - np.min(Z)) / (np.max(Z)*1.01 - np.min(Z))  # prevent probability to remove=1 on some points
+Z_s = (Z - np.min(Z)) / (np.max(Z) * 1.01 - np.min(Z))  # prevent probability to remove=1 on some points
 Z_s[Z_s > 0.8] = 0.8
 Z_s[(1700 < sec_since) & (sec_since < 5800) & (Z_s < 0.7)] = 0.05
-Z_s[(labels==1) & (results > 0.06)] = 0.85
-Z_s[(labels==1) & (results > 0.0299) & (results < 0.03019) & (4728.62 < sec_since) & (sec_since < 4728.84)] = 0.95
-Z_s[(labels==1) & (results > 0.0230211) & (results < 0.0231015) & (4728.62 < sec_since) & (sec_since < 4728.84)] = 0.95
+Z_s[(labels == 1) & (results > 0.06)] = 0.85
+Z_s[(labels == 1) & (results > 0.0299) & (results < 0.03019) & (4728.62 < sec_since) & (sec_since < 4728.84)] = 0.95
+Z_s[(labels == 1) & (results > 0.0230211) & (results < 0.0231015) & (4728.62 < sec_since) & (sec_since < 4728.84)] = 0.95
 
 plt.scatter(sec_since, Z_s)
 plt.show()
@@ -158,7 +158,7 @@ plt.show()
 mask = np.ones(sec_since.shape, dtype=bool)
 for i in range(3):
     R = np.random.random(Z.shape)
-    mask = np.logical_and(mask, (R-0.0) > np.power(Z_s, 1/2))  # adjust threshold and power
+    mask = np.logical_and(mask, (R - 0.0) > np.power(Z_s, 0.5))  # adjust threshold and power
 
 # manual
 # num_elems = results.shape[0]
@@ -167,8 +167,8 @@ for i in range(3):
 # np.random.shuffle(mask)
 # mask = mask.astype(bool)
 
-#mask2 = (results < 9e-5)
-#mask = np.logical_and(mask, mask2)
+# mask2 = (results < 9e-5)
+# mask = np.logical_and(mask, mask2)
 # mask = mask2
 
 mask[0] = True
@@ -178,9 +178,9 @@ results_ = results[mask]
 labels_ = labels[mask]
 print(np.sum(mask))
 plt.close()
-plt.scatter(sec_since_[labels_==1], results_[labels_==1], marker = "^", c='#ff7f0e', alpha=0.4, s=50, linewidth=0, label="attack (ground truth)")
-plt.scatter(sec_since_[labels_==0], results_[labels_==0], marker = "o", c='#1f77b4', alpha=0.4, s=50, linewidth=0, label="normal (ground truth)")
-plt.axhline(y=th*2.7, linewidth=0.5, c="k", label="threshold")
+plt.scatter(sec_since_[labels_ == 1], results_[labels_ == 1], marker="^", c='#ff7f0e', alpha=0.4, s=50, linewidth=0, label="attack (ground truth)")
+plt.scatter(sec_since_[labels_ == 0], results_[labels_ == 0], marker="o", c='#1f77b4', alpha=0.4, s=50, linewidth=0, label="normal (ground truth)")
+plt.axhline(y=(th * 2.7), linewidth=0.5, c="k", label="threshold")
 
 plt.hlines(y=0.05, xmin=1909, xmax=5590, colors="black", linestyles="dashed", linewidths=0.75)
 plt.annotate(text="C&C active\nperiod", xy=(1850, 0.05), xytext=(0, 0.035), arrowprops=dict(facecolor='black', width=0.1, headwidth=1, headlength=1))

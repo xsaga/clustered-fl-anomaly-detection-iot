@@ -59,10 +59,10 @@ fig, ax = plt.subplots()
 for exp_name, losses in all_experiments.items():
     label_name = re.match(exp_pattern, exp_name).group(1)
     eval_loss = losses["eval"]
-    ax.plot(range(1, len(eval_loss)+1), eval_loss, label=label_name, marker=next(markers), linestyle="dashed")
+    ax.plot(range(1, len(eval_loss) + 1), eval_loss, label=label_name, marker=next(markers), linestyle="dashed")
 
 ax.set_xlim(left=1)
-axlabels = [str(l) if l%10==0 else "" for l in np.arange(fl_rounds)]
+axlabels = [str(lbl) if lbl % 10 == 0 else "" for lbl in np.arange(fl_rounds)]
 axlabels[0] = ""
 axlabels[1] = "1"
 ax.set_xticks(np.arange(fl_rounds), axlabels)
@@ -76,7 +76,7 @@ fig.tight_layout()
 fig.savefig("cluster_mqtt_clientopt_serveropt.pdf", format="pdf")
 
 
-res={}
+res = {}
 for key, val in all_experiments.items():
     subkey1 = key.split("_")[1]
     subkey2 = key.split("_")[2]
@@ -85,7 +85,7 @@ for key, val in all_experiments.items():
     if subkey1 in res:
         res[subkey1][subkey2] = val["eval"][-1]
     else:
-        res[subkey1] = {subkey2:val["eval"][-1]}
+        res[subkey1] = {subkey2: val["eval"][-1]}
 
 df = pd.DataFrame(res)
 df.sort_index(axis="columns", inplace=True)
@@ -100,14 +100,13 @@ plt.ylabel("server learning rate")
 fig = plt.gcf()
 fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
-#plt.show()
+# plt.show()
 plt.savefig("cluster_mqtt_lrgs_adam1_sgd.pdf", format="pdf")
-
 
 
 for exp_name in get_exp_key(all_experiments, "adam1lr0p001_sgdlr1p5"):
     eval_loss = all_experiments[exp_name]["eval"]
-    plt.plot(range(1, len(eval_loss)+1), eval_loss, label=exp_name, marker=next(markers), linestyle="dashed")
+    plt.plot(range(1, len(eval_loss) + 1), eval_loss, label=exp_name, marker=next(markers), linestyle="dashed")
 plt.legend()
 plt.yscale("log")
 plt.show()

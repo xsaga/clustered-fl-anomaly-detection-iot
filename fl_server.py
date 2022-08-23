@@ -19,7 +19,7 @@ def fedavg(model_weights: List[List[torch.Tensor]], num_training_samples: List[i
     total_training_samples = sum(num_training_samples)
     for layers in zip(*model_weights):
         weighted_layers = torch.stack([torch.mul(l, w) for l, w in zip(layers, num_training_samples)])
-        averaged_layers =  torch.div(torch.sum(weighted_layers, dim=0), total_training_samples)
+        averaged_layers = torch.div(torch.sum(weighted_layers, dim=0), total_training_samples)
         new_weights.append(averaged_layers)
     return new_weights
 
@@ -37,9 +37,9 @@ def delta_updates(model_weights: List[List[torch.Tensor]], num_training_samples:
 def serveropt(arguments, optimizer_state, model_weights: List[List[torch.Tensor]], num_training_samples: List[int], previous_model: List[torch.Tensor]) -> Tuple[List[torch.Tensor], Any]:
     prev_model = [t.detach().clone() for t in previous_model]
     pseudogradient = [torch.neg(t) for t in delta_updates(model_weights, num_training_samples, prev_model)]
-    
+
     params = [t.requires_grad_(True) for t in prev_model]
-    
+
     if arguments.serveropt == "adam":
         opt = optim.Adam(params, lr=arguments.lr, betas=(arguments.b1, arguments.b2), eps=arguments.eps, weight_decay=arguments.wdecay)
     else:  # args.serveropt == "sgd"
@@ -54,13 +54,13 @@ def serveropt(arguments, optimizer_state, model_weights: List[List[torch.Tensor]
     for i, param in enumerate(params):
         param.grad = pseudogradient[i]
     opt.step()
-    
+
     return [t.detach().clone() for t in params], opt.state_dict()
 
 
 def average_weighted_loss(model_losses: List[float], num_training_samples: List[int]) -> float:
-    weighted_losses = [l*n for l, n in zip(model_losses, num_training_samples)]
-    return sum(weighted_losses)/sum(num_training_samples)
+    weighted_losses = [l * n for l, n in zip(model_losses, num_training_samples)]
+    return sum(weighted_losses) / sum(num_training_samples)
 
 
 parser = argparse.ArgumentParser(description="FL server.")
@@ -129,13 +129,13 @@ if Path(eval_pcap_filename).is_file():
     print(f"Loading evaluation data {eval_pcap_filename}...")
 
     try:
-        X_eval = torch.load(eval_pcap_filename+".pt")
-    except FileNotFoundError:  
+        X_eval = torch.load(eval_pcap_filename + ".pt")
+    except FileNotFoundError:
         eval_df = pcap_to_dataframe(eval_pcap_filename)
         eval_df = preprocess_dataframe(eval_df, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
         eval_df = eval_df.drop(columns=["timestamp"])
         X_eval = torch.from_numpy(eval_df.to_numpy(dtype=np.float32))
-        torch.save(X_eval, eval_pcap_filename+".pt")
+        torch.save(X_eval, eval_pcap_filename + ".pt")
 
     eval_dl = DataLoader(X_eval, batch_size=32, shuffle=False)
 else:
@@ -206,5 +206,5 @@ new_global_model_dir.mkdir(exist_ok=True)
 new_global_model_path = new_global_model_dir / f"global_model_round_{current_fl_round}.tar"
 torch.save(new_checkpoint, new_global_model_path)
 
-np.savez(new_global_model_dir/f"losses_num_samples_round{current_fl_round}.npz", np.array(all_loss), np.array(all_train_loss), np.array(all_training_samples))
+np.savez(new_global_model_dir / f"losses_num_samples_round{current_fl_round}.npz", np.array(all_loss), np.array(all_train_loss), np.array(all_training_samples))
 print(f"New global model {new_checkpoint['model_hash']} saved to {new_global_model_path}. Avg loss {avg_loss}. Avg train loss {new_checkpoint['train_loss']}.")

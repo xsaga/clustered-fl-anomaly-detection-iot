@@ -26,7 +26,7 @@ def fit(model, optimizer, loss_function, epochs, train_generator, valid_generato
 
         print(f"epoch {epoch+1}/{epochs}: train loss {train_loss_acc/len(train_generator):.8f}")
         epoch_list.append(epoch)
-        loss_list.append(train_loss_acc/len(train_generator))
+        loss_list.append(train_loss_acc / len(train_generator))
         valid_loss_list.append(test(model, loss_func, valid_generator))
     return epoch_list, loss_list, valid_loss_list
 
