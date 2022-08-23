@@ -56,28 +56,25 @@ data_dimensions = args.dimensions
 model_paths = list(args.dir.glob("*.pt"))
 print(f"Found {len(model_paths)} models in {args.dir}")
 
-modelos = []
-pesos = []
+weights = []
 names = []
 for model_path in model_paths:
     m = Autoencoder(data_dimensions)
     m.load_state_dict(torch.load(model_path))
-    modelos.append(m)
-    all_weights = np.concatenate([v.detach().numpy().flatten() for v in m.state_dict().values()])
-    pesos.append(all_weights)
-    # pesos.append(m.decoder[2].weight.flatten().detach().numpy())
+    model_weights = np.concatenate([v.detach().numpy().flatten() for v in m.state_dict().values()])
+    weights.append(model_weights)
     names.append(Path(model_path).stem)
 
 names = [n.split("_")[0].replace("iotsim-", "") for n in names]
 tags = np.array([n.rsplit("-", 1)[0] for n in names])
-pesos = np.array(pesos)
+weights = np.array(weights)
 
 # cluster
-pca_cluster = PCA(n_components=0.9) # explain 90% var
-pesos_reducido = pca_cluster.fit_transform(pesos)
-print(pesos_reducido.shape)
+pca_cluster = PCA(n_components=0.9)  # explain 90% var
+reduced_weights = pca_cluster.fit_transform(weights)
+print(reduced_weights.shape)
 
-cluster_numbers = list(range(2, min(41, pesos.shape[0]-1)))
+cluster_numbers = list(range(2, min(41, weights.shape[0]-1)))
 kmeans_labels = dict()
 score_ss = []
 score_ch = []
@@ -85,13 +82,13 @@ score_db = []
 score_sdbw = []
 for n_clusters in cluster_numbers:
     print(n_clusters)
-    kmeans = KMeans(n_clusters=n_clusters, init="k-means++", n_init=50).fit(pesos_reducido)
+    kmeans = KMeans(n_clusters=n_clusters, init="k-means++", n_init=50).fit(reduced_weights)
     kmeans_labels[n_clusters] = kmeans.labels_
 
-    score_ss.append(silhouette_score(pesos_reducido, kmeans.labels_))
-    score_ch.append(calinski_harabasz_score(pesos_reducido, kmeans.labels_))
-    score_db.append(davies_bouldin_score(pesos_reducido, kmeans.labels_))
-    score_sdbw.append(S_Dbw(pesos_reducido, kmeans.labels_, centers_id=None, method="Tong", centr="mean", metric="euclidean"))
+    score_ss.append(silhouette_score(reduced_weights, kmeans.labels_))
+    score_ch.append(calinski_harabasz_score(reduced_weights, kmeans.labels_))
+    score_db.append(davies_bouldin_score(reduced_weights, kmeans.labels_))
+    score_sdbw.append(S_Dbw(reduced_weights, kmeans.labels_, centers_id=None, method="Tong", centr="mean", metric="euclidean"))
 
 fig, ax1 = plt.subplots()
 ax1.set_xlabel("number of clusters")
@@ -155,7 +152,7 @@ else:
     fig.tight_layout()
     fig.savefig(args.dir/"score_groundtruth.pdf", format="pdf")
 
-best_n_clusters = args.clusters if args.clusters > 0 else int(input("Selected number of clusters? ")) # 8
+best_n_clusters = args.clusters if args.clusters > 0 else int(input("Selected number of clusters? "))
 print("Selected ", best_n_clusters, " clusters")
 print("Cluster composition:")
 for cluster_idx, items in count_cluster_items(kmeans_labels[best_n_clusters], tags).items():
@@ -163,48 +160,48 @@ for cluster_idx, items in count_cluster_items(kmeans_labels[best_n_clusters], ta
 
 # 2D Viz
 pca = PCA(n_components=2)
-pca.fit(pesos)
-reducido = pca.transform(pesos)
+pca.fit(weights)
+reduced_2d = pca.transform(weights)
 
-colm = cm.get_cmap("viridis", best_n_clusters)
+cmap = cm.get_cmap("viridis", best_n_clusters)
 
 def select_position(positions, rest):
-    # poner label en el hueco mas alejado
+    # find a better position to place the text labels
     distances = scipy.spatial.distance.cdist(positions, rest)
     closest = distances.min(axis=1)
     selection = np.argmax(closest)
     return positions[selection]
 
 fig, ax = plt.subplots()
-ax.scatter(reducido[:, 0], reducido[:, 1], c=kmeans_labels[best_n_clusters], alpha=0.4, linewidth=0.5)
+ax.scatter(reduced_2d[:, 0], reduced_2d[:, 1], c=kmeans_labels[best_n_clusters], alpha=0.4, linewidth=0.5)
 
 for i in range(best_n_clusters):
-    red = reducido[kmeans_labels[best_n_clusters] == i]
-    if red.shape[0] < 3:
+    red_cluster = reduced_2d[kmeans_labels[best_n_clusters] == i]
+    if red_cluster.shape[0] < 3:
         continue  # not enough points for convex hull
-    hull = ConvexHull(red)
+    hull = ConvexHull(red_cluster)
     for simplex in hull.simplices:
-        ax.plot(red[simplex, 0], red[simplex, 1], c=colm(i), linestyle="solid", alpha=0.5)
+        ax.plot(red_cluster[simplex, 0], red_cluster[simplex, 1], c=cmap(i), linestyle="solid", alpha=0.5)
 
 for i in range(best_n_clusters):
-    reducido_clus = reducido[kmeans_labels[best_n_clusters] == i]
-    clus_mean = reducido_clus.mean(axis=0)
-    clus_ymax = reducido_clus[:, 1].max()
+    red_clus = reduced_2d[kmeans_labels[best_n_clusters] == i]
+    clus_mean = red_clus.mean(axis=0)
+    clus_ymax = red_clus[:, 1].max()
     clus_text = f"Cluster {i}"
     # ax.scatter(clus_mean[0], clus_mean[1], c="green", marker="v")
 
-    options = [[clus_mean[0], reducido_clus[:, 1].max() + 0.25],
-               [clus_mean[0], reducido_clus[:, 1].min() - 0.25]]
-              # [reducido_clus[:, 0].max() + 0.2, clus_mean[1]],
-              # [reducido_clus[:, 0].min() - 0.2, clus_mean[1]]]
+    options = [[clus_mean[0], red_clus[:, 1].max() + 0.25],
+               [clus_mean[0], red_clus[:, 1].min() - 0.25]]
+              # [red_clus[:, 0].max() + 0.2, clus_mean[1]],
+              # [red_clus[:, 0].min() - 0.2, clus_mean[1]]]
     # text_x, text_y = clus_mean[0], clus_ymax + 0.2
-    text_x, text_y = select_position(options, reducido[kmeans_labels[best_n_clusters] != i])
-    ax.text(text_x, text_y, s=clus_text, c="black", bbox=dict(facecolor=colm(i), edgecolor=colm(i), alpha=0.25, boxstyle="round", pad=0.1), horizontalalignment="center")
+    text_x, text_y = select_position(options, reduced_2d[kmeans_labels[best_n_clusters] != i])
+    ax.text(text_x, text_y, s=clus_text, c="black", bbox=dict(facecolor=cmap(i), edgecolor=cmap(i), alpha=0.25, boxstyle="round", pad=0.1), horizontalalignment="center")
 
 if args.show:
     for i, n in enumerate(names):
         n = f"({kmeans_labels[best_n_clusters][i]}) {n}"
-        ax.annotate(n, (reducido[i, 0], reducido[i, 1])).set_alpha(0.1)
+        ax.annotate(n, (reduced_2d[i, 0], reduced_2d[i, 1])).set_alpha(0.1)
 
 ax.set_xlabel("principal component 1")
 ax.set_ylabel("principal component 2")
