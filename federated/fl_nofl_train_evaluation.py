@@ -12,7 +12,6 @@ global_round_dirs = [p for p in global_models_dir_path.iterdir() if p.is_dir() a
 global_round_dirs = sorted(global_round_dirs, key=lambda p: int(p.stem.rsplit("_", 1)[-1]))
 
 # FL
-
 fl_weighted_losses = []
 fl_losses_min = []
 fl_losses_max = []
@@ -49,7 +48,6 @@ max_loss = np.max(losses, axis=0)
 avg_loss = np.mean(losses, axis=0)
 
 
-# poner doble eje X
 ## plt.scatter(list(range(1, len(global_round_dirs))), fl_weighted_losses, color="blue")
 plt.plot(list(range(1, len(global_round_dirs))), fl_weighted_losses, color="blue", label="Avg FL loss")
 ## plt.fill_between(list(range(1, len(global_round_dirs))), fl_losses_max, fl_losses_min, alpha=0.3, color="blue", hatch="\\", label="Min to Max FL loss range")
@@ -66,7 +64,6 @@ plt.tight_layout()
 plt.show()
 
 
-# ===== bueno =====
 fig, ax = plt.subplots()
 ax.set_xlim((1, len(global_round_dirs)-1))
 ax.plot(list(range(1, len(global_round_dirs))), fl_weighted_losses, color="blue", label="Avg FL loss")
