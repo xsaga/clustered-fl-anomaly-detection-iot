@@ -1,5 +1,6 @@
 import math
 import subprocess
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -8,13 +9,13 @@ from scipy import stats
 from scapy.all import ARP, ICMP, IP, IPv6, PcapReader, TCP, UDP, raw
 from tqdm import tqdm
 
-port_basic_three_map = [
+port_basic_three_map: List[Tuple[Sequence[int], str]] = [
     (range(0, 1024), "system"),
     (range(1024, 49152), "user"),
     (range(49152, 65536), "dynamic")
 ]
 
-port_hierarchy_map = [
+port_hierarchy_map: List[Tuple[Sequence[int], str]] = [
     ([80, 280, 443, 591, 593, 777, 488, 1183, 1184, 2069, 2301, 2381, 8008, 8080], "httpPorts"),
     ([24, 25, 50, 58, 61, 109, 110, 143, 158, 174, 209, 220, 406, 512, 585, 993, 995], "mailPorts"),
     ([42, 53, 81, 101, 105, 261], "dnsPorts"),
@@ -38,7 +39,7 @@ port_hierarchy_map = [
     (range(1024, 65536), "NONPRIVILEGED_PORTS")
 ]
 
-port_hierarchy_map_iot = [
+port_hierarchy_map_iot: List[Tuple[Sequence[int], str]] = [
     ([1883, 8883], "mqttPorts"),
     ([5683, 5684], "coapPorts"),
     ([8554, 8322, 8000, 8001, 8002, 8003, 1935, 8888], "rtspPorts"),
@@ -82,10 +83,10 @@ def tcp_flag_to_str(flag: int) -> str:
     return str(TCP(flags=flag).flags)
 
 
-def port_to_categories(port_map, port: int) -> str:
-    for ph_range, ph_name in port_map:
-        if port in ph_range:
-            return ph_name
+def port_to_categories(port_map: List[Tuple[Sequence[int], str]], port: int) -> str:
+    for p_range, p_name in port_map:
+        if port in p_range:
+            return p_name
 
     return ""
 
@@ -164,14 +165,14 @@ def pcap_to_dataframe(pcap_filename: str, verbose=False) -> pd.DataFrame:
     return pd.DataFrame(pkt_features)
 
 
-def preprocess_dataframe(input_df: pd.DataFrame, port_mapping=None, sport_bins=None, dport_bins=None) -> pd.DataFrame:
+def preprocess_dataframe(input_df: pd.DataFrame, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None) -> pd.DataFrame:
     """
     Ex:
     sport_bins = [0, 1883, 35783, 40629, 45765, 51039, 56023, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
     dport_bins = [0, 1883, 35690, 41810, 48285, 54791, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
     """
 
-    if (port_mapping is None) and (sport_bins is None) and (dport_bins) is None:
+    if (port_mapping is None) and (sport_bins is None) and (dport_bins is None):
         port_mapping = port_basic_three_map
         print("Using default port mapping: ", port_mapping)
 
