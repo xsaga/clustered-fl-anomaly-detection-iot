@@ -1,12 +1,14 @@
 import argparse
-from feature_extractor import port_basic_three_map, port_hierarchy_map, port_hierarchy_map_iot
-from model_ae import Autoencoder, state_dict_hash, load_data, fit, test
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
 from torch import optim
+
+from feature_extractor import port_basic_three_map, port_hierarchy_map, port_hierarchy_map_iot
+from model_ae import Autoencoder, fit, load_data, state_dict_hash, test
+
 
 parser = argparse.ArgumentParser(description="FL client.")
 parser.add_argument("-b", "--base", type=lambda p: Path(p).absolute(), default=Path("./FLbase").absolute())

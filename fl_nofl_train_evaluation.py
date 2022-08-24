@@ -1,7 +1,9 @@
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
+
 
 localepochs = 4  # 4
 cluster_fname = "cluster_cam"

@@ -1,25 +1,21 @@
 import argparse
-import numpy as np
-
-import torch
-from model_ae import Autoencoder
-
 from pathlib import Path
 
+import numpy as np
+import torch
+import scipy
+from scipy.spatial import ConvexHull
+from s_dbw import S_Dbw
 from matplotlib import cm
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
-
-import scipy
-from scipy.spatial import ConvexHull
-
-from s_dbw import S_Dbw
-
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
-from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
-from sklearn.metrics import rand_score, adjusted_rand_score, adjusted_mutual_info_score, normalized_mutual_info_score, homogeneity_score, completeness_score, v_measure_score, homogeneity_completeness_v_measure
+from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score, silhouette_score
+from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, completeness_score, homogeneity_completeness_v_measure, homogeneity_score, normalized_mutual_info_score, rand_score, v_measure_score
+
+from model_ae import Autoencoder
 
 
 def count_cluster_items(cluster_predicted, item_labels):

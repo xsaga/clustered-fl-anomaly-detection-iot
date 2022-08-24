@@ -1,18 +1,18 @@
-from feature_extractor import pcap_to_dataframe, preprocess_dataframe
-from collections import OrderedDict
-from typing import Dict, List, Tuple, Union
-from pathlib import Path
 import hashlib
+from collections import OrderedDict
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
+
 import numpy as np
 import pandas as pd
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader, TensorDataset
-
 from sklearn.model_selection import train_test_split
+
+from feature_extractor import pcap_to_dataframe, preprocess_dataframe
 
 
 def state_dict_hash(state_dict: Union['OrderedDict[str, torch.Tensor]', Dict[str, torch.Tensor]]) -> str:

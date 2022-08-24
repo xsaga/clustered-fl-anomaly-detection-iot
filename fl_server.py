@@ -1,16 +1,17 @@
 import argparse
-from feature_extractor import pcap_to_dataframe, preprocess_dataframe, port_basic_three_map, port_hierarchy_map, port_hierarchy_map_iot
-from model_ae import Autoencoder, state_dict_hash, test
-from collections import OrderedDict
-from typing import Dict, List, Tuple, Union, Any
-from pathlib import Path
 import sys
-import numpy as np
+from collections import OrderedDict
+from pathlib import Path
+from typing import Dict, List, Tuple, Union, Any
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader, TensorDataset
+
+from feature_extractor import pcap_to_dataframe, port_basic_three_map, port_hierarchy_map, port_hierarchy_map_iot, preprocess_dataframe
+from model_ae import Autoencoder, state_dict_hash, test
 
 
 def fedavg(model_weights: List[List[torch.Tensor]], num_training_samples: List[int]) -> List[torch.Tensor]:

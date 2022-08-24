@@ -1,10 +1,11 @@
 import math
 import subprocess
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 from scipy import stats
-from scapy.all import *
+from scapy.all import ARP, ICMP, IP, IPv6, PcapReader, TCP, UDP, raw
 from tqdm import tqdm
 
 port_basic_three_map = [

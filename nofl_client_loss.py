@@ -1,11 +1,13 @@
 import argparse
-from feature_extractor import port_basic_three_map, port_hierarchy_map, port_hierarchy_map_iot
-from model_ae import Autoencoder, load_data, test
 from pathlib import Path
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import optim
+
+from feature_extractor import port_basic_three_map, port_hierarchy_map, port_hierarchy_map_iot
+from model_ae import Autoencoder, load_data, test
 
 
 def fit(model, optimizer, loss_function, epochs, train_generator, valid_generator):

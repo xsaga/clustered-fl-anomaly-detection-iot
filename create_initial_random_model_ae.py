@@ -1,6 +1,8 @@
 import sys
-from model_ae import Autoencoder
+
 import torch
+
+from model_ae import Autoencoder
 
 
 data_dimensions = int(sys.argv[1])

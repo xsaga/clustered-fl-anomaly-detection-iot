@@ -1,17 +1,17 @@
-from feature_extractor import pcap_to_dataframe, preprocess_dataframe, port_hierarchy_map_iot
-from model_ae import Autoencoder
-from datetime import datetime
 import os
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
-
 import torch
 import torch.nn.functional as F
-
-from sklearn.metrics import confusion_matrix, roc_curve, auc, accuracy_score, f1_score, matthews_corrcoef
+from sklearn.metrics import accuracy_score, auc, confusion_matrix, f1_score, matthews_corrcoef, roc_curve
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
 import seaborn as sns
+
+from feature_extractor import pcap_to_dataframe, port_hierarchy_map_iot, preprocess_dataframe
+from model_ae import Autoencoder
 
 
 rcParams["font.family"] = ["Times New Roman"]
