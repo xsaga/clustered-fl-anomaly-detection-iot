@@ -1,4 +1,6 @@
 import math
+import os
+import shutil
 import subprocess
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
@@ -91,11 +93,30 @@ def port_to_categories(port_map: List[Tuple[Sequence[int], str]], port: int) -> 
     return ""
 
 
+def get_pcap_packet_count(filename: str) -> Optional[int]:
+    if os.name == "nt":
+        extrapath = os.environ["PATH"] + os.pathsep + "C:\\Program Files\\Wireshark"
+    else:
+        extrapath = None
+
+    capinfos_bin = shutil.which("capinfos", path=extrapath)
+    if not capinfos_bin:
+        return None
+
+    try:
+        capinfos_out = subprocess.run([capinfos_bin, "-M", "-c", filename], check=True, capture_output=True, encoding="utf-8")
+        packet_count = int(capinfos_out.stdout.strip().split()[-1])
+    except subprocess.CalledProcessError as e:
+        print(e)
+        return None
+
+    return packet_count
+
+
 def pcap_to_dataframe(pcap_filename: str, verbose=False) -> pd.DataFrame:
     # count number of packets
-    capinfos = subprocess.run(["capinfos", "-M", "-c", pcap_filename], capture_output=True, encoding="utf-8")
-    packet_count = int(capinfos.stdout.strip().split()[-1])
-    if verbose:
+    packet_count = get_pcap_packet_count(pcap_filename)
+    if verbose and packet_count:
         print(f"Number of packets in capture {packet_count}")
 
     # rdpcap uses too much memory
