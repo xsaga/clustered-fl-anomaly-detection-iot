@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+
+# Concatenates two pcap files. The timestamps of the packets in the
+# first pcap file are shifted so that the timestamp of the last packet
+# from the first pcap is just before the first packet of the second pcap
+# file (no time gap between the two) so that it appears as a single
+# capture.
+
+# Used to evaluate pcaps with Kitsune, because it is sensitive to packet
+# timings.
+
 set -e
 
 FIRSTPCAP=$1

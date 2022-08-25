@@ -1,5 +1,8 @@
-# adapted from: https://github.com/ymirsky/Kitsune-py/blob/master/example.py
+"""Run Kitsune training and evaluation loop.
 
+Serializes the resulting root mean square (RMS) array.
+Adapted from: https://github.com/ymirsky/Kitsune-py/blob/master/example.py
+"""
 from Kitsune import Kitsune
 import numpy as np
 import time
