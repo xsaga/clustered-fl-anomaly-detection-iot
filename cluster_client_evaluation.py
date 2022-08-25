@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -18,7 +19,7 @@ from sklearn.metrics import adjusted_mutual_info_score, adjusted_rand_score, com
 from model_ae import Autoencoder
 
 
-def count_cluster_items(cluster_predicted, item_labels):
+def count_cluster_items(cluster_predicted: np.ndarray, item_labels: np.ndarray) -> Dict[int, List[Tuple[str, int]]]:
     result = {}
     for i in range(cluster_predicted.max() + 1):
         items_in_cluster = item_labels[cluster_predicted == i]
@@ -71,7 +72,7 @@ reduced_weights = pca_cluster.fit_transform(weights)
 print(reduced_weights.shape)
 
 cluster_numbers = list(range(2, min(41, weights.shape[0] - 1)))
-kmeans_labels = dict()
+kmeans_labels: Dict[int, np.ndarray] = {}
 score_ss = []
 score_ch = []
 score_db = []

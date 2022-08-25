@@ -1,3 +1,5 @@
+from typing import Dict, List, Tuple
+
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -9,7 +11,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc, accuracy_score, f1_score, matthews_corrcoef
 
 
-def label_by_ip(df, rules, default=-1):
+def label_by_ip(df: pd.DataFrame, rules: List[Tuple[str, bool, str, bool, int]], default: int=-1) -> np.ndarray:
     """
     example:
     rules = [("192.168.0.2", True, "192.168.0.10", True, 0),  # if src add IS 192.168.0.2 and dst addr IS 192.168.0.10 label as 0
@@ -45,9 +47,9 @@ path_tsv_file = path + ".tsv"
 path_serialized_rmse = path + ".rmse.npy"
 
 # metadata
-rules = []
-rules_map = {}
-text_info = []
+rules: List[Tuple[str, bool, str, bool, int]] = []
+rules_map: Dict[int, str] = {}
+text_info: List[Tuple[datetime, str]] = []
 
 # Load tsv file into a DataFrame. Columns:
 # frame.time_epoch, frame.len, eth.src,

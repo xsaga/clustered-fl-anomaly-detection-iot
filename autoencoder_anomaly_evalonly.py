@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,7 @@ plot_width = 3.487  # in
 plot_height = 2.155
 
 
-def label_by_ip(df, rules, default=-1):
+def label_by_ip(df: pd.DataFrame, rules: List[Tuple[str, bool, str, bool, int]], default: int=-1) -> np.ndarray:
     """
     example:
     rules = [("192.168.0.2", True, "192.168.0.10", True, 0),  # if src add IS 192.168.0.2 and dst addr IS 192.168.0.10 label as 0
@@ -54,9 +55,9 @@ VALID_NORMAL_DATA_PATH = "xxx.pickle"
 VALID_ATTACK_DATA_PATH = "xxx.pickle"
 
 
-rules = []
-rules_map = {}
-text_info = []
+rules: List[Tuple[str, bool, str, bool, int]] = []
+rules_map: Dict[int, str] = {}
+text_info: List[Tuple[datetime, str]] = []
 
 # === Load trained model ===
 model = Autoencoder(69)

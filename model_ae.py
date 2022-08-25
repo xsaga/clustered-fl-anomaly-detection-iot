@@ -1,7 +1,7 @@
 import hashlib
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -23,21 +23,21 @@ def state_dict_hash(state_dict: Union['OrderedDict[str, torch.Tensor]', Dict[str
     return h.hexdigest()
 
 
-def split_train_valid_eval(df: pd.DataFrame, eval_split=None, train_size=0.8):
+def split_train_valid_eval(df: pd.DataFrame, eval_split: Optional[Union[float, int]]=None, train_size: Union[float, int]=0.8) -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
     if eval_split:
         df_train_valid, df_eval = train_test_split(df, shuffle=False, train_size=eval_split)
         df_train, df_valid = train_test_split(df_train_valid, shuffle=False, train_size=train_size)
         return df_train, df_valid, df_eval
-    else:
-        df_train, df_valid = train_test_split(df, shuffle=False, train_size=train_size)
-        return df_train, df_valid, None
+
+    df_train, df_valid = train_test_split(df, shuffle=False, train_size=train_size)
+    return df_train, df_valid, None
 
 
-def load_data(pcap_filename, cache_tensors=True, port_mapping=None, sport_bins=None, dport_bins=None):
+def load_data(pcap_filename: str, cache_tensors: bool=True, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None) -> Tuple[DataLoader, DataLoader]:
     cache_filename = Path(pcap_filename + "_cache_tensors.pt")
     if cache_tensors and cache_filename.is_file():
         print("loading data from cache: ", cache_filename)
-        serialize_tensors = torch.load(cache_filename)
+        serialize_tensors: Dict[str, torch.Tensor] = torch.load(cache_filename)
         X_train = serialize_tensors["X_train"]
         X_valid = serialize_tensors["X_valid"]
     else:
@@ -58,7 +58,7 @@ def load_data(pcap_filename, cache_tensors=True, port_mapping=None, sport_bins=N
 
 
 class Autoencoder(nn.Module):
-    def __init__(self, num_input):
+    def __init__(self, num_input: int):
         super(Autoencoder, self).__init__()
         self.encoder = nn.Sequential(
             nn.Linear(num_input, num_input // 2),  # 26,12

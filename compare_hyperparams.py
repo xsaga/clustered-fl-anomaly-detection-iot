@@ -1,6 +1,7 @@
 import itertools
 import re
 from pathlib import Path
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 
-def get_exp_key(d, k):
+def get_exp_key(d: Dict[str, Any], k:str) -> List[str]:
     return list(filter(lambda x: k in x, d.keys()))
 
 
@@ -34,7 +35,7 @@ print(f"{len(experiment_files)} experiment files found.")
 
 fl_rounds = None
 
-all_experiments = {}
+all_experiments: Dict[str, Dict[str, List[float]]] = {}
 for experiment in experiment_files:
     experiment_name = experiment.name
     experiment_models_global_path = experiment / "models_global"
@@ -77,7 +78,7 @@ fig.tight_layout()
 fig.savefig("cluster_mqtt_clientopt_serveropt.pdf", format="pdf")
 
 
-res = {}
+res: Dict[str, Dict[str, float]] = {}
 for key, val in all_experiments.items():
     subkey1 = key.split("_")[1]
     subkey2 = key.split("_")[2]
