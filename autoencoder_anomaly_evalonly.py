@@ -1,3 +1,4 @@
+"""Evaluate trained anomaly detection models on pcap files."""
 import os
 from datetime import datetime
 from typing import Dict, List, Tuple
@@ -27,10 +28,25 @@ plot_height = 2.155
 
 
 def label_by_ip(df: pd.DataFrame, rules: List[Tuple[str, bool, str, bool, int]], default: int=-1) -> np.ndarray:
-    """
-    example:
-    rules = [("192.168.0.2", True, "192.168.0.10", True, 0),  # if src add IS 192.168.0.2 and dst addr IS 192.168.0.10 label as 0
-             ("192.168.0.2", True, "192.168.0.10", False, 1)] # if src add IS 192.168.0.2 and dst addr IS NOT 192.168.0.10 label as 1
+    """Label each packet based on a list of rules for IP addresses.
+
+    Keyword arguments:
+    df    -- DataFrame of extracted packet features.
+
+    rules -- List of rules. Each rule is of type Tuple[str, bool, str,
+    bool, int]. The first str, bool pair refers to the source IP
+    address. The second str, bool pair refers to the destination IP
+    address. The bools indicate whether the corresponding IP address
+    should be included or excluded. The int is the label assigned to
+    the packets that match the rule. Example: ("192.168.0.2", True,
+    "192.168.0.10", True, 0) == if src addr IS 192.168.0.2 and dst
+    addr IS 192.168.0.10 label as 0. ("192.168.0.2", True,
+    "192.168.0.10", False, 1) == if src addr IS 192.168.0.2 and dst
+    addr IS NOT 192.168.0.10 label as 1. You can refer to any IP
+    address using an invalid IP address string and False.
+
+    default -- default label assigned to packets that do not match the
+    rules.
     """
     labels = np.full(df.shape[0], default)
     for srcip, srcinclude, dstip, dstinclude, label in rules:
@@ -43,6 +59,7 @@ def label_by_ip(df: pd.DataFrame, rules: List[Tuple[str, bool, str, bool, int]],
 
 
 def reconstruction_error(model, loss_function, samples):
+    """Apply the model prediction to a list of samples."""
     with torch.no_grad():
         model.eval()
         predictions = model(samples)
@@ -54,9 +71,13 @@ GLOBAL_MODEL_PATH = "xxx.tar"
 VALID_NORMAL_DATA_PATH = "xxx.pickle"
 VALID_ATTACK_DATA_PATH = "xxx.pickle"
 
-
+# rules: see label_by_ip function.
 rules: List[Tuple[str, bool, str, bool, int]] = []
+# rules_map: mapping between a rule label and its description.
+# Example: {0: "normal", 1: "Mirai C&C"}
 rules_map: Dict[int, str] = {}
+# text_info: put marks in the plot at certain timestamps.
+# Example: (datetime(2022, 7, 13, 15, 5, 0), "start mirai bot")
 text_info: List[Tuple[datetime, str]] = []
 
 # === Load trained model ===

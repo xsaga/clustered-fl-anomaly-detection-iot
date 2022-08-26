@@ -1,3 +1,7 @@
+"""Model training without Federated Learning.
+
+Not to be executed directly. This program is called by the 'nofl_run.sh' script.
+"""
 import argparse
 from pathlib import Path
 

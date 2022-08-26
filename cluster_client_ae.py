@@ -1,3 +1,7 @@
+"""Partial training of the model for the device clustering. Represents a single client (one pcap file).
+
+Not to be executed directly. This program is called by 'cluster_train.sh'
+"""
 import argparse
 import sys
 from pathlib import Path

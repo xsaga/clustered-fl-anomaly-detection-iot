@@ -1,3 +1,7 @@
+"""Visualize and compare Federated Learning and non-FL training results.
+
+Use after running the fl and nofl training scripts.
+"""
 from pathlib import Path
 
 import numpy as np

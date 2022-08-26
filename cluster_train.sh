@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+
+# Run the partial training of the models for the device clustering
+# step. If needed, adjust the input dimensions of the autoencoder model
+# (change cluster_client_ae.py accordingly). Models are trained in
+# parallel, adjust the number of parallel jobs according to the number
+# of cores.
+
 set -e
 
 command -v parallel >/dev/null 2>&1 || { echo >&2 "Install GNU Parallel.  Aborting."; exit 1; }

@@ -1,3 +1,4 @@
+"""Initialize and save an autoencoder model with random weights."""
 import sys
 
 import torch

@@ -16,10 +16,25 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc, accuracy_score, f1
 
 
 def label_by_ip(df: pd.DataFrame, rules: List[Tuple[str, bool, str, bool, int]], default: int=-1) -> np.ndarray:
-    """
-    example:
-    rules = [("192.168.0.2", True, "192.168.0.10", True, 0),  # if src add IS 192.168.0.2 and dst addr IS 192.168.0.10 label as 0
-             ("192.168.0.2", True, "192.168.0.10", False, 1)] # if src add IS 192.168.0.2 and dst addr IS NOT 192.168.0.10 label as 1
+    """Label each packet based on a list of rules for IP addresses.
+
+    Keyword arguments:
+    df    -- DataFrame of extracted packet features.
+
+    rules -- List of rules. Each rule is of type Tuple[str, bool, str,
+    bool, int]. The first str, bool pair refers to the source IP
+    address. The second str, bool pair refers to the destination IP
+    address. The bools indicate whether the corresponding IP address
+    should be included or excluded. The int is the label assigned to
+    the packets that match the rule. Example: ("192.168.0.2", True,
+    "192.168.0.10", True, 0) == if src addr IS 192.168.0.2 and dst
+    addr IS 192.168.0.10 label as 0. ("192.168.0.2", True,
+    "192.168.0.10", False, 1) == if src addr IS 192.168.0.2 and dst
+    addr IS NOT 192.168.0.10 label as 1. You can refer to any IP
+    address using an invalid IP address string and False.
+
+    default -- default label assigned to packets that do not match the
+    rules.
     """
     labels = np.full(df.shape[0], default)
     # set to normal: ipv6, arp. To make comparison with FL IDS.
@@ -51,8 +66,13 @@ path_tsv_file = path + ".tsv"
 path_serialized_rmse = path + ".rmse.npy"
 
 # metadata
+# rules: see label_by_ip function.
 rules: List[Tuple[str, bool, str, bool, int]] = []
+# rules_map: mapping between a rule label and its description.
+# Example: {0: "normal", 1: "Mirai C&C"}
 rules_map: Dict[int, str] = {}
+# text_info: put marks in the plot at certain timestamps.
+# Example: (datetime(2022, 7, 13, 15, 5, 0), "start mirai bot")
 text_info: List[Tuple[datetime, str]] = []
 
 # Load tsv file into a DataFrame. Columns:

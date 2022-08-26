@@ -1,3 +1,9 @@
+"""Apply the 'pcap_to_dataframe' function to pcap files and save the resulting DataFrame.
+
+Transforming the pcap to a DataFrame can take a long time for large
+pcap files. Use this script to precompute the DataFrames and use them
+in the other programs.
+"""
 import argparse
 from pathlib import Path
 

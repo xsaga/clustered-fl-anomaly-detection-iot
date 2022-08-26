@@ -1,3 +1,4 @@
+"""Functions to convert pcap files to DataFrames."""
 import math
 import os
 import shutil
@@ -86,6 +87,7 @@ def tcp_flag_to_str(flag: int) -> str:
 
 
 def port_to_categories(port_map: List[Tuple[Sequence[int], str]], port: int) -> str:
+    """Convert port number to category according to port_map."""
     for p_range, p_name in port_map:
         if port in p_range:
             return p_name
@@ -94,6 +96,7 @@ def port_to_categories(port_map: List[Tuple[Sequence[int], str]], port: int) -> 
 
 
 def get_pcap_packet_count(filename: str) -> Optional[int]:
+    """Return the number of packets in a pcap file."""
     if os.name == "nt":
         extrapath = os.environ["PATH"] + os.pathsep + "C:\\Program Files\\Wireshark"
     else:
@@ -114,6 +117,11 @@ def get_pcap_packet_count(filename: str) -> Optional[int]:
 
 
 def pcap_to_dataframe(pcap_filename: str, verbose=False) -> pd.DataFrame:
+    """Convert pcap file into a DataFrame.
+
+    For each packet in the pcap file, only selected features are
+    extracted to be included in the DataFrame.
+    """
     # count number of packets
     packet_count = get_pcap_packet_count(pcap_filename)
     if verbose and packet_count:
@@ -187,12 +195,7 @@ def pcap_to_dataframe(pcap_filename: str, verbose=False) -> pd.DataFrame:
 
 
 def preprocess_dataframe(input_df: pd.DataFrame, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None) -> pd.DataFrame:
-    """
-    Ex:
-    sport_bins = [0, 1883, 35783, 40629, 45765, 51039, 56023, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
-    dport_bins = [0, 1883, 35690, 41810, 48285, 54791, 65536]  # from federated binning extractor (default: [0, 1024, 49152, 65536])
-    """
-
+    """Preprocess the features from the DataFrame to make them suitable for ML model input."""
     if (port_mapping is None) and (sport_bins is None) and (dport_bins is None):
         port_mapping = port_basic_three_map
         print("Using default port mapping: ", port_mapping)

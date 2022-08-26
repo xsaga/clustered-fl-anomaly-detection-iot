@@ -1,3 +1,4 @@
+"""Defines the Autoencoder model and basic functions."""
 import hashlib
 from collections import OrderedDict
 from pathlib import Path
@@ -16,6 +17,7 @@ from feature_extractor import pcap_to_dataframe, preprocess_dataframe
 
 
 def state_dict_hash(state_dict: Union['OrderedDict[str, torch.Tensor]', Dict[str, torch.Tensor]]) -> str:
+    """Get a hash of the model's state_dict. For checks and debugging."""
     h = hashlib.md5()
     for k, v in state_dict.items():
         h.update(k.encode("utf-8"))
@@ -24,6 +26,14 @@ def state_dict_hash(state_dict: Union['OrderedDict[str, torch.Tensor]', Dict[str
 
 
 def split_train_valid_eval(df: pd.DataFrame, eval_split: Optional[Union[float, int]]=None, train_size: Union[float, int]=0.8) -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
+    """Split a Dataframe into two or three splits.
+
+    If eval_split is set: first the DataFrame is divided into two
+    splits (train_valid and eval) based on eval_split. Then,
+    trin_valid is further divided into two splits (train and valid)
+    based on train_size. If eval split is not set: the DataFrame is
+    divided into two splits based on train_size.
+    """
     if eval_split:
         df_train_valid, df_eval = train_test_split(df, shuffle=False, train_size=eval_split)
         df_train, df_valid = train_test_split(df_train_valid, shuffle=False, train_size=train_size)
@@ -34,6 +44,7 @@ def split_train_valid_eval(df: pd.DataFrame, eval_split: Optional[Union[float, i
 
 
 def load_data(pcap_filename: str, cache_tensors: bool=True, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None) -> Tuple[DataLoader, DataLoader]:
+    """ Reads a pcap file and transforms it into a training and validation DataLoader."""
     cache_filename = Path(pcap_filename + "_cache_tensors.pt")
     if cache_tensors and cache_filename.is_file():
         print("loading data from cache: ", cache_filename)
@@ -61,18 +72,16 @@ class Autoencoder(nn.Module):
     def __init__(self, num_input: int):
         super(Autoencoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(num_input, num_input // 2),  # 26,12
-            # nn.Dropout(0.05), # !
-            nn.ReLU(),  # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(num_input // 2, num_input // 4),  # 12,4
-            nn.ReLU()  # nn.Sigmoid() # nn.Tanh(), nn.Sigmoid(), nn.ReLU()
+            nn.Linear(num_input, num_input // 2),
+            nn.ReLU(),
+            nn.Linear(num_input // 2, num_input // 4),
+            nn.ReLU()
         )
         self.decoder = nn.Sequential(
-            nn.Linear(num_input // 4, num_input // 2),  # 4,12
-            nn.ReLU(),  # nn.LeakyReLU(), nn.ReLU()
-            nn.Linear(num_input // 2, num_input),  # 12,26
-            # nn.Dropout(0.05), # !
-            nn.ReLU()  # nn.ReLU()
+            nn.Linear(num_input // 4, num_input // 2),
+            nn.ReLU(),
+            nn.Linear(num_input // 2, num_input),
+            nn.ReLU()
         )
 
     def forward(self, x):
@@ -81,8 +90,9 @@ class Autoencoder(nn.Module):
         return decoded
 
 
-def fit(model, optimizer, loss_function, epochs, train_generator):
+def fit(model, optimizer, loss_function, epochs, train_generator) -> float:
     model.train()
+    train_loss_acc = 0.0
     for epoch in range(epochs):
         train_loss_acc = 0.0
         for x_batch in train_generator:
@@ -95,10 +105,10 @@ def fit(model, optimizer, loss_function, epochs, train_generator):
             optimizer.zero_grad()
 
         print(f"epoch {epoch+1}/{epochs}: train loss {train_loss_acc/len(train_generator):.8f}")
-    return train_loss_acc / len(train_generator)  # type: ignore
+    return train_loss_acc / len(train_generator)
 
 
-def test(model, loss_function, valid_generator):
+def test(model, loss_function, valid_generator) -> float:
     valid_loss_acc = 0.0
     with torch.no_grad():
         model.eval()

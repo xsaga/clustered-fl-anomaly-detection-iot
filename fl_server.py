@@ -1,3 +1,7 @@
+"""Federated Learning server.
+
+Not to be executed directly. This program is called by the 'fl_run_*.sh' scripts.
+"""
 import argparse
 import sys
 from collections import OrderedDict
@@ -15,6 +19,7 @@ from model_ae import Autoencoder, state_dict_hash, test
 
 
 def fedavg(model_weights: List[List[torch.Tensor]], num_training_samples: List[int]) -> List[torch.Tensor]:
+    """FedAvg model aggregation"""
     assert len(model_weights) == len(num_training_samples)
     new_weights = []
     total_training_samples = sum(num_training_samples)
@@ -27,6 +32,7 @@ def fedavg(model_weights: List[List[torch.Tensor]], num_training_samples: List[i
 
 # FedOpt
 def delta_updates(model_weights: List[List[torch.Tensor]], num_training_samples: List[int], previous_model: List[torch.Tensor]) -> List[torch.Tensor]:
+    """Get Delta_t from 'Adaptive Federated Optimization (Reddi et al.)'."""
     # model_weights : list of models : list of list of tensors
     avg_model_weights = fedavg(model_weights, num_training_samples)
     delta = []
@@ -36,6 +42,7 @@ def delta_updates(model_weights: List[List[torch.Tensor]], num_training_samples:
 
 
 def serveropt(arguments, optimizer_state, model_weights: List[List[torch.Tensor]], num_training_samples: List[int], previous_model: List[torch.Tensor]) -> Tuple[List[torch.Tensor], Any]:
+    """Get ServerOpt from 'Adaptive Federated Optimization (Reddi et al.)'."""
     prev_model = [t.detach().clone() for t in previous_model]
     pseudogradient = [torch.neg(t) for t in delta_updates(model_weights, num_training_samples, prev_model)]
 
@@ -60,6 +67,7 @@ def serveropt(arguments, optimizer_state, model_weights: List[List[torch.Tensor]
 
 
 def average_weighted_loss(model_losses: List[float], num_training_samples: List[int]) -> float:
+    """Weighted average."""
     weighted_losses = [l * n for l, n in zip(model_losses, num_training_samples)]
     return sum(weighted_losses) / sum(num_training_samples)
 

@@ -1,3 +1,7 @@
+"""Visualize Federated Learning training results.
+
+Use after running the 'fl_run_*.sh' scripts.
+"""
 import itertools
 import re
 from pathlib import Path

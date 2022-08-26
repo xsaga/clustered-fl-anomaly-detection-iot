@@ -1,3 +1,7 @@
+"""Federated Learning client.
+
+Not to be executed directly. This program is called by the 'fl_run_*.sh' scripts.
+"""
 import argparse
 import sys
 from pathlib import Path

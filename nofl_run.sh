@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+# Run the non Federated Learning training.
+# Multiple experiments for different number of training epochs.
+
 command -v parallel >/dev/null 2>&1 || { echo >&2 "Install GNU Parallel.  Aborting."; exit 1; }
 python -c "import torch; print(torch.__version__)" || { echo >&2 "Configure your python environment. Aborting."; exit 1; }
 

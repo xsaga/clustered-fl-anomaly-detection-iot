@@ -1,3 +1,7 @@
+"""Visualize and evaluate client clustering results.
+
+Use after 'cluster_train.sh'
+"""
 import argparse
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -20,6 +24,11 @@ from model_ae import Autoencoder
 
 
 def count_cluster_items(cluster_predicted: np.ndarray, item_labels: np.ndarray) -> Dict[int, List[Tuple[str, int]]]:
+    """Show the device composition of each identified cluster.
+
+    For each cluster, return a list with the unique labels and counts
+    of the devices belonging to that cluster.
+    """
     result = {}
     for i in range(cluster_predicted.max() + 1):
         items_in_cluster = item_labels[cluster_predicted == i]
@@ -164,7 +173,11 @@ cmap = cm.get_cmap("viridis", best_n_clusters)
 
 
 def select_position(positions, rest):
-    # find a better position to place the text labels
+    """Find an 'acceptable' position to place the text label in a plot.
+
+    From a list of candidate positions, return the position that
+    maximizes the distance to the closest point.
+    """
     distances = scipy.spatial.distance.cdist(positions, rest)
     closest = distances.min(axis=1)
     selection = np.argmax(closest)
