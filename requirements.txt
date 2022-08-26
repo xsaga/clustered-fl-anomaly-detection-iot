@@ -2,7 +2,6 @@ ipython
 matplotlib
 numpy
 pandas
-requests
 scapy
 scikit-learn
 scipy
@@ -10,9 +9,7 @@ s-dbw
 seaborn
 tqdm
 
---find-links https://download.pytorch.org/whl/torch_stable.html
-torch==1.8.1+cpu
-torchvision==0.9.1+cpu
-torchaudio==0.8.1
-
-flwr==0.16.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+torchaudio
