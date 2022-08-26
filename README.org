@@ -1,0 +1,62 @@
+* Clustered Federated Learning Architecture for Network Anomaly Detection in Large Scale Heterogeneous IoT Networks
+
+Tested on Ubuntu 22.04 LTS (with venv and pip) and Windows 10 (with
+WSL2 and Conda).
+
+** Dependencies
+
+Python dependencies are listed in the =requirements.txt=
+file. Additional dependencies:
+
+- GNU parallel
+- tshark
+- capinfos
+- editcap
+- mergecap
+
+
+* Usage
+
+The =feature_extractor.py= and =model_ae.py= programs are common to
+all the experiments.
+
+** Clustering step
+
+Place all the pcap files into a directory, and include the
+=feature_extractor.py=, =model_ae.py=,
+=create_initial_random_model_ae.py=, =cluster_client_ae.py= and
+=cluster_train.sh= programs.
+
+To start the clustering process, run =cluster_train.sh=.
+
+*** Evaluation
+
+Use =cluster_client_evaluation.py= to evaluate the clustering results.
+
+** Clustered Federated Learning hyperparameter tuning and training
+
+Separate the pcap files into different directories based on the
+clustering results. Include the =feature_extractor.py=, =model_ae.py=,
+=fl_client.py=, =fl_server.py= and =fl_run_*.sh= programs.
+
+To start different tests, run the corresponding =fl_run_*.sh= script.
+
+To compare the Federated Learning training with the Non-FL training
+include the =nofl_client_loss.py= and =nofl_run.sh= programs and run
+the last one.
+
+*** Evaluation
+
+Use =compare_hyperparams.py= and =fl_nofl_train_evaluation.py= to
+evaluate the training results.
+
+** Anomaly detection
+
+
+Use =autoencoder_anomaly_evalonly.py= to evaluate the anomaly
+detection performance of the trained models. To convert the pcap files
+to be evaluated into a DataFrame use =pcap2df.py=.
+
+* Comparison with other methods
+
+See =kitsune= directory.
