@@ -55,7 +55,8 @@ evaluate the training results.
 
 Use =autoencoder_anomaly_evalonly.py= to evaluate the anomaly
 detection performance of the trained models. To convert the pcap files
-to be evaluated into a DataFrame use =pcap2df.py=.
+to be evaluated into a DataFrame use =pcap2df.py=. The metadata for
+the different attacking scenarios is on =metadata_rules.py=.
 
 * Comparison with other methods
 

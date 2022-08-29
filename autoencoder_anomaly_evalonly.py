@@ -71,6 +71,7 @@ GLOBAL_MODEL_PATH = "xxx.tar"
 VALID_NORMAL_DATA_PATH = "xxx.pickle"
 VALID_ATTACK_DATA_PATH = "xxx.pickle"
 
+# Metadata. See: metadata_rules.py
 # rules: see label_by_ip function.
 rules: List[Tuple[str, bool, str, bool, int]] = []
 # rules_map: mapping between a rule label and its description.

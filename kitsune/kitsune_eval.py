@@ -65,7 +65,7 @@ path = "merged.pcap"
 path_tsv_file = path + ".tsv"
 path_serialized_rmse = path + ".rmse.npy"
 
-# metadata
+# Metadata. See: metadata_rules.py
 # rules: see label_by_ip function.
 rules: List[Tuple[str, bool, str, bool, int]] = []
 # rules_map: mapping between a rule label and its description.
