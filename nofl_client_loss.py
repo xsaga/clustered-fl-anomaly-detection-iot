@@ -57,7 +57,7 @@ model = Autoencoder(args.dimensions)
 torch.set_num_threads(1)
 
 print(f"Loading data {args.pcap}...")
-train_dl, valid_dl = load_data(args.pcap, cache_tensors=True, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
+train_dl, valid_dl = load_data(args.pcap, use_serialized_dataframe_if_available=True, cache_tensors=True, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
 
 num_epochs = args.epochs  # num_local_epochs x num_fl_rounds
 

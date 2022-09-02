@@ -43,16 +43,21 @@ def split_train_valid_eval(df: pd.DataFrame, eval_split: Optional[Union[float, i
     return df_train, df_valid, None
 
 
-def load_data(pcap_filename: str, cache_tensors: bool=True, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None) -> Tuple[DataLoader, DataLoader]:
+def load_data(pcap_filename: str, use_serialized_dataframe_if_available: bool=False, cache_tensors: bool=True, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None) -> Tuple[DataLoader, DataLoader]:
     """ Reads a pcap file and transforms it into a training and validation DataLoader."""
     cache_filename = Path(pcap_filename + "_cache_tensors.pt")
+    serialized_df_filename = Path(pcap_filename).with_suffix(".pickle")
     if cache_tensors and cache_filename.is_file():
         print("loading data from cache: ", cache_filename)
         serialize_tensors: Dict[str, torch.Tensor] = torch.load(cache_filename)
         X_train = serialize_tensors["X_train"]
         X_valid = serialize_tensors["X_valid"]
     else:
-        df = pcap_to_dataframe(pcap_filename)
+        if use_serialized_dataframe_if_available and serialized_df_filename.is_file():
+            print("loading serialized dataframe: ", serialized_df_filename)
+            df = pd.read_pickle(serialized_df_filename)
+        else:
+            df = pcap_to_dataframe(pcap_filename)
         df = preprocess_dataframe(df, port_mapping, sport_bins, dport_bins)
         df = df.drop(columns=["timestamp"])
         df_train, df_valid, _ = split_train_valid_eval(df, train_size=0.8)

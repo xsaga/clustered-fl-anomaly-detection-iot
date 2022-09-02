@@ -56,7 +56,7 @@ model.load_state_dict(global_checkpoint["state_dict"], strict=True)
 print(f"Starting with global model {state_dict_hash(model.state_dict())}\nat {global_model_path}.\nFL round {current_round}.")
 
 print(f"Loading data from {args.pcap}...")
-train_dl, valid_dl = load_data(args.pcap, cache_tensors=True, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
+train_dl, valid_dl = load_data(args.pcap, use_serialized_dataframe_if_available=True, cache_tensors=True, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
 
 num_epochs = int(global_checkpoint["local_epochs"])
 

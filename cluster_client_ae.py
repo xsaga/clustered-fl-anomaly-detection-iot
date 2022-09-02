@@ -27,7 +27,7 @@ model.load_state_dict(torch.load(initial_random_model_path), strict=True)
 print(f"Loaded initial model {initial_random_model_path} with hash {state_dict_hash(model.state_dict())}")
 
 print(f"Loading data from {args.pcap}... ")
-train_dl, _ = load_data(args.pcap, cache_tensors=False, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
+train_dl, _ = load_data(args.pcap, use_serialized_dataframe_if_available=True, cache_tensors=False, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
 print("Loaded")
 
 opt = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
