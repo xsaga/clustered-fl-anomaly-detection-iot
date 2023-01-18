@@ -1,0 +1,60 @@
+import pickle
+from pathlib import Path
+from typing import Dict, List
+
+import numpy as np
+import pandas as pd
+
+from matplotlib import pyplot as plt
+import seaborn as sns
+
+total_results: Dict[str, List[Dict[str, float]]] = {}
+#              ^- trials for different number of compromised devices
+#                        ^- different repetitions for each trial
+#                           of compromised devices
+#                             ^- data
+
+BASE_DIR = Path("./clustering_compromised")
+trial_dirs = [d for d in BASE_DIR.iterdir() if d.is_dir() and d.match("trial_*")]
+trial_dirs = sorted(trial_dirs, key=lambda d: int(d.name.split("_")[1]))
+
+# Load data
+for trial in trial_dirs:
+    trial_list = []
+
+    repetitions_dirs = [d for d in trial.iterdir() if d.is_dir() and d.match("clus_4epochs_re*")]
+    repetitions_dirs = sorted(repetitions_dirs, key=lambda d: int(d.name.split("_re")[-1]))
+
+    for repetition in repetitions_dirs:
+        with open(repetition / "results.pickle", "rb") as f:
+            trial_list.append(pickle.load(f))
+
+    total_results[trial.name] = trial_list
+
+# Transform data
+transformed_results: Dict[str, Dict[str, List[float]]] = {}
+
+for key, val in total_results.items():
+    # Columns: Cluster 0, Cluster 1, ..., Cluster K
+    # Rows   : r repetitions
+    df = pd.DataFrame(val)
+    transformed_results[key] = df.to_dict(orient="list")
+
+# Transformed Clusters first
+clusters_first = {}
+for k in range(8):
+    xxx = {}
+    for trial in transformed_results.keys():
+        xxx[trial] = transformed_results[trial][f"Cluster {k}"]
+    clusters_first[f"Cluster {k}"] = xxx
+
+# Plots
+for k in range(8):
+    cluster_df = pd.DataFrame(clusters_first[f"Cluster {k}"])
+    cluster_df.rename(mapper=lambda x: x.split("_")[1], axis="columns", inplace=True)
+    fig, ax = plt.subplots()
+    sns.boxplot(data=cluster_df, ax=ax)
+    ax.set_title(f"Cluster {k}")
+    ax.set_xlabel("Number of compromised devices")
+    ax.set_ylabel("Average diameter")
+    fig.savefig(BASE_DIR / f"cluster_{k}.png")
