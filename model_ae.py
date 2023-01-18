@@ -43,7 +43,7 @@ def split_train_valid_eval(df: pd.DataFrame, eval_split: Optional[Union[float, i
     return df_train, df_valid, None
 
 
-def load_data(pcap_filename: str, use_serialized_dataframe_if_available: bool=False, cache_tensors: bool=True, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None) -> Tuple[DataLoader, DataLoader]:
+def load_data(pcap_filename: str, use_serialized_dataframe_if_available: bool=False, cache_tensors: bool=True, port_mapping: Optional[List[Tuple[Sequence[int], str]]]=None, sport_bins: Optional[List[int]]=None, dport_bins: Optional[List[int]]=None, train_data_fraction=0.8) -> Tuple[DataLoader, DataLoader]:
     """ Reads a pcap file and transforms it into a training and validation DataLoader."""
     cache_filename = Path(pcap_filename + "_cache_tensors.pt")
     serialized_df_filename = Path(pcap_filename).with_suffix(".pickle")
@@ -60,7 +60,7 @@ def load_data(pcap_filename: str, use_serialized_dataframe_if_available: bool=Fa
             df = pcap_to_dataframe(pcap_filename)
         df = preprocess_dataframe(df, port_mapping, sport_bins, dport_bins)
         df = df.drop(columns=["timestamp"])
-        df_train, df_valid, _ = split_train_valid_eval(df, train_size=0.8)
+        df_train, df_valid, _ = split_train_valid_eval(df, train_size=train_data_fraction)
         X_train = torch.from_numpy(df_train.to_numpy(dtype=np.float32))
         X_valid = torch.from_numpy(df_valid.to_numpy(dtype=np.float32))
         if cache_tensors:

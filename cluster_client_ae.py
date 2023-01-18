@@ -17,6 +17,7 @@ from model_ae import Autoencoder, fit, load_data, state_dict_hash
 parser = argparse.ArgumentParser(description="Train partial models for clustering.")
 parser.add_argument("-d", "--dimensions", type=int, default=27)
 parser.add_argument("-e", "--epochs", type=int, default=4)
+parser.add_argument("-f", "--fraction-train", type=float, default=0.8)
 parser.add_argument("pcap")
 args = parser.parse_args()
 
@@ -27,8 +28,8 @@ model.load_state_dict(torch.load(initial_random_model_path), strict=True)
 print(f"Loaded initial model {initial_random_model_path} with hash {state_dict_hash(model.state_dict())}")
 
 print(f"Loading data from {args.pcap}... ")
-train_dl, _ = load_data(args.pcap, use_serialized_dataframe_if_available=True, cache_tensors=False, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None)
-print("Loaded")
+train_dl, _ = load_data(args.pcap, use_serialized_dataframe_if_available=True, cache_tensors=False, port_mapping=port_hierarchy_map_iot, sport_bins=None, dport_bins=None, train_data_fraction=args.fraction_train)
+print(f"Loaded. Total samples {train_dl.dataset.shape[0]}, fraction {args.fraction_train}")
 
 opt = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 loss_func = F.mse_loss
