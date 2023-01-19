@@ -1,0 +1,20 @@
+name: flids
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - ipython
+  - numpy=1.23.*
+  - pandas=1.5.*
+  - scikit-learn=1.1.*
+  - scipy=1.9.*
+  - matplotlib=3.6.*
+  - seaborn=0.12.*
+  - scapy=2.4.*
+  - tqdm=4.64.*
+  - pytorch=1.13.*
+  - pip
+  - pip:
+    - s-dbw
