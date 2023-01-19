@@ -8,7 +8,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
 
-
+SHOW_ONLY = True
 localepochs = 4  # 4
 cluster_fname = "cluster_cam"
 global_models_dir_path = Path(f"./{cluster_fname}/E_{localepochs}/models_global")
@@ -143,15 +143,27 @@ fl_bp = ax.boxplot(fl_losses_raw, showmeans=False, patch_artist=True, boxprops=d
 
 plt.yscale("log")
 
-#                     l % 2 == 0
-axlabels = [str(lbl) if lbl % 5 == 0 else "" for lbl in range(1, len(global_round_dirs))]
-axlabels[0] = str(range(1, len(global_round_dirs))[0])  # == "1"
-ax.set_xticklabels(axlabels)
+# #                     l % 2 == 0
+# axlabels = [str(lbl) if lbl % 5 == 0 else "" for lbl in range(1, len(global_round_dirs))]
+# axlabels[0] = str(range(1, len(global_round_dirs))[0])  # == "1"
+# ax.set_xticklabels(axlabels)
 
-ax2labels = [str(lbl) if lbl % (localepochs * 10) == 0 else "" for lbl in epochs + 1]  # l%(localepochs*2)==0
-first_ax2label = epoch_mask.nonzero()[0][0]
-ax2labels[first_ax2label] = str(first_ax2label + 1)
-ax2.set_xticklabels(ax2labels)
+ax1ticks = ax.xaxis.get_major_ticks()
+for i in range(1, len(global_round_dirs)):
+    if i==1 or i%10==0:
+        continue
+    ax1ticks[i-1].set_visible(False)
+
+# ax2labels = [str(lbl) if lbl % (localepochs * 10) == 0 else "" for lbl in epochs + 1]  # l%(localepochs*2)==0
+# first_ax2label = epoch_mask.nonzero()[0][0]
+# ax2labels[first_ax2label] = str(first_ax2label + 1)
+# ax2.set_xticklabels(ax2labels)
+
+ax2ticks = ax2.xaxis.get_major_ticks()
+for i in epochs + 1:
+    if i==localepochs or i%(localepochs * 10) == 0:
+        continue
+    ax2ticks[i-1].set_visible(False)
 
 # ax.grid(axis="x")
 ax.set_xlabel("FL rounds")
@@ -166,8 +178,10 @@ fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
 ax.set_zorder(1)
 ax.set_frame_on(False)
-# plt.show()
-plt.savefig(f"{cluster_fname}_e{localepochs}_boxplot.pdf", format="pdf")
+if SHOW_ONLY:
+    plt.show()
+else:
+    plt.savefig(f"{cluster_fname}_e{localepochs}_boxplot.pdf", format="pdf")
 
 ####
 # for i in range(len(nofl_files)):

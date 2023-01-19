@@ -12,12 +12,14 @@ import pandas as pd
 import torch
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 
 
 def get_exp_key(d: Dict[str, Any], k:str) -> List[str]:
     return list(filter(lambda x: k in x, d.keys()))
 
+SHOW_ONLY = True
 
 rcParams["font.family"] = ["Times New Roman"]
 rcParams["font.size"] = 8
@@ -30,7 +32,8 @@ rcParams["lines.markersize"] = 4
 plot_width = 3.487  # in
 plot_height = 3.487
 
-base_path = Path("./cluster_mqtt/")
+cluster_fname = "cluster_mqtt"
+base_path = Path(f"./{cluster_fname}/")
 exp_pattern = re.compile("lrgridsearchA([0-9]+)")
 
 experiment_files = [d for d in base_path.iterdir() if d.is_dir() and re.match(exp_pattern, d.name)]
@@ -46,7 +49,7 @@ for experiment in experiment_files:
 
     global_round_dirs = [p for p in experiment_models_global_path.iterdir() if p.is_dir() and p.match("round_*")]
     global_round_dirs = sorted(global_round_dirs, key=lambda p: int(p.stem.rsplit("_", 1)[-1]))
-    fl_rounds = len(global_round_dirs)
+    fl_rounds = len(global_round_dirs) - 1
 
     experiment_eval_losses = []
     experiment_train_losses = []
@@ -67,19 +70,24 @@ for exp_name, losses in all_experiments.items():
     eval_loss = losses["eval"]
     ax.plot(range(1, len(eval_loss) + 1), eval_loss, label=label_name, marker=next(markers), linestyle="dashed")
 
-ax.set_xlim(left=1)
-axlabels = [str(lbl) if lbl % 10 == 0 else "" for lbl in np.arange(fl_rounds)]
-axlabels[0] = ""
-axlabels[1] = "1"
-ax.set_xticks(np.arange(fl_rounds), axlabels)
-ax.legend(loc="upper right", title="Trial", ncol=2)
+ax.set_xlim(left=1, right=fl_rounds)
+# axlabels = [str(lbl) if lbl % 10 == 0 else "" for lbl in np.arange(fl_rounds + 1)]
+# axlabels[0] = ""
+# axlabels[1] = "1"
+# ax.set_xticks(np.arange(fl_rounds + 1), axlabels)
+ax.xaxis.set_major_locator(MultipleLocator(base=10.0))
+ax.xaxis.set_minor_locator(MultipleLocator(base=1.0))
+# ax.legend(loc="upper right", title="Trial", ncol=2)
+ax.legend(bbox_to_anchor=(1.0, 1.0), title="Trial", fancybox=False, frameon=False, borderpad=0.0, handletextpad=0.0)
 ax.set_xlabel("FL rounds")
 ax.set_ylabel("evaluation loss")
 ax.set_yscale("log")
 fig.set_size_inches(plot_width, plot_height)
 fig.tight_layout()
-# fig.show()
-fig.savefig("cluster_mqtt_clientopt_serveropt.pdf", format="pdf")
+if SHOW_ONLY:
+    fig.show()
+else:
+    fig.savefig(f"{cluster_fname}_clientopt_serveropt.pdf", format="pdf")
 
 
 res: Dict[str, Dict[str, float]] = {}
@@ -99,15 +107,18 @@ df.sort_index(axis="columns", inplace=True)
 print(np.log10(df))
 
 # https://stackoverflow.com/questions/27037241/changing-the-rotation-of-tick-labels-in-seaborn-heatmap
-sns.heatmap(np.log10(df), annot=True, fmt=".3g", cmap=sns.color_palette("Blues", as_cmap=True).reversed())
-plt.yticks(rotation=0)
-plt.xlabel("client learning rate")
-plt.ylabel("server learning rate")
-fig = plt.gcf()
+fig, ax = plt.subplots()
+sns.heatmap(np.log10(df), annot=True, fmt=".3g", cmap=sns.color_palette("Blues", as_cmap=True).reversed(), ax=ax)
+ax.tick_params(axis="y", rotation=0)
+ax.tick_params(axis="x", rotation=10)
+ax.set_xlabel("client learning rate")
+ax.set_ylabel("server learning rate")
 fig.set_size_inches(plot_width, plot_height)
-plt.tight_layout()
-# plt.show()
-plt.savefig("cluster_mqtt_lrgs_adam1_sgd.pdf", format="pdf")
+fig.tight_layout()
+if SHOW_ONLY:
+    fig.show()
+else:
+    fig.savefig(f"{cluster_fname}_lrgs_adam1_sgd.pdf", format="pdf")
 
 
 for exp_name in get_exp_key(all_experiments, "adam1lr0p001_sgdlr1p5"):
