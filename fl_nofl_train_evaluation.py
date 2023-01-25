@@ -128,6 +128,9 @@ losses[:, ~epoch_mask] = np.nan
 fig, ax = plt.subplots()
 ax.set_xlim((1, len(global_round_dirs) - 1))
 
+# fix visualization for cluster_cam
+# ax.set_ylim((7e-6, 1.5e-4))
+
 ax2 = ax.twiny()
 ax2.set_xlim((localepochs, len(epochs)))
 
@@ -173,6 +176,9 @@ ax2.set_xlabel("isolated edge training epochs")
 nofl_line_legend = plt.Line2D([0], [0])
 nofl_line_legend.update_from(nofl_line)
 nofl_line_legend.set_marker("v")
+
+# fix visualization for cluster_cam
+# add ncol=2 to fig.legend()
 fig.legend([fl_bp["boxes"][0], fl_line, nofl_bp["boxes"][0], nofl_line_legend], ["FL", fl_line.get_label(), "Isolated edge", nofl_line_legend.get_label()], loc="upper right", bbox_to_anchor=(1, 1), bbox_transform=ax.transAxes)
 fig.set_size_inches(plot_width, plot_height)
 plt.tight_layout()
