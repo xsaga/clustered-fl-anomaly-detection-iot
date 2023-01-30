@@ -3,6 +3,25 @@
 # Additional experiment to verify the clustering performance when the
 # fraction of training data of each device is changed.
 
+# After completion, run:
+# find . -type d -iname "clus_4epochs_port_hier_iot_rep*" -exec python cluster_client_evaluation.py --dir {} --dimensions 69 --clusters 8 --image-format png \;
+
+# EPSILON=4
+# mkdir results_all
+# for ITERNUM in $(seq 10)
+# do
+#     for FRACTION in 0.01 0.1 0.2 0.4 0.6 0.8 0.99
+#     do
+# 	echo "----- REPETITION: $ITERNUM FRACTION: $FRACTION -----"
+# 	cp clus_${EPSILON}epochs_port_hier_iot_rep${ITERNUM}_${FRACTION}frac/score_unsupervised.png results_all/score_unsupervised_${FRACTION}frac_rep${ITERNUM}.png
+# 	cp clus_${EPSILON}epochs_port_hier_iot_rep${ITERNUM}_${FRACTION}frac/score_groundtruth.png results_all/score_groundtruth_${FRACTION}frac_rep${ITERNUM}.png
+# 	cp clus_${EPSILON}epochs_port_hier_iot_rep${ITERNUM}_${FRACTION}frac/cluster_composition.txt results_all/cluster_composition_${FRACTION}frac_rep${ITERNUM}.txt
+# 	cp clus_${EPSILON}epochs_port_hier_iot_rep${ITERNUM}_${FRACTION}frac/2d_map.png results_all/2d_map_${FRACTION}frac_rep${ITERNUM}.png
+#     done
+# done
+
+
+
 # Run the partial training of the models for the device clustering
 # step. If needed, adjust the input dimensions of the autoencoder model
 # (change cluster_client_ae.py accordingly). Models are trained in

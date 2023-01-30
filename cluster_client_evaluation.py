@@ -41,6 +41,7 @@ parser.add_argument("--dir", required=True, type=lambda p: Path(p).absolute())
 parser.add_argument("--dimensions", required=True, type=int)
 parser.add_argument("--clusters", required=False, type=int, default=0)
 parser.add_argument("--show", action="store_true")
+parser.add_argument("--image-format", required=False, type=str, choices=["pdf", "png"], default="pdf")
 args = parser.parse_args()  # parse_args(["--dir", "clustering_results", "--dimensions", "27"])
 
 if not args.show:
@@ -117,7 +118,7 @@ if args.show:
 else:
     fig.set_size_inches(plot_width, plot_height)
     fig.tight_layout()
-    fig.savefig(args.dir / "score_unsupervised.pdf", format="pdf")
+    fig.savefig(args.dir / f"score_unsupervised.{args.image_format}", format=args.image_format)
 
 device_name_map = {"air-quality": 0,
                    "building-monitor": 1,
@@ -156,13 +157,19 @@ if args.show:
 else:
     fig.set_size_inches(plot_width, plot_height)
     fig.tight_layout()
-    fig.savefig(args.dir / "score_groundtruth.pdf", format="pdf")
+    fig.savefig(args.dir / f"score_groundtruth.{args.image_format}", format=args.image_format)
 
 best_n_clusters = args.clusters if args.clusters > 0 else int(input("Selected number of clusters? "))
 print("Selected ", best_n_clusters, " clusters")
 print("Cluster composition:")
+cluster_composition_str = ""
 for cluster_idx, items in count_cluster_items(kmeans_labels[best_n_clusters], tags).items():
-    print(f"Cluster {cluster_idx}: {items}")
+    cluster_composition_str +=  f"Cluster {cluster_idx}: {items}\n"
+print(cluster_composition_str)
+
+if not args.show:
+    with open(args.dir / "cluster_composition.txt", "w", encoding="utf-8") as f:
+        f.write(cluster_composition_str)
 
 # 2D Viz
 pca = PCA(n_components=2)
@@ -222,4 +229,4 @@ if args.show:
 else:
     fig.set_size_inches(plot_width, plot_height)
     fig.tight_layout()
-    fig.savefig(args.dir / "2d_map.pdf", format="pdf")
+    fig.savefig(args.dir / f"2d_map.{args.image_format}", format=args.image_format)
