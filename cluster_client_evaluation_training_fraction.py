@@ -62,6 +62,8 @@ def create_clustering(experiment_dir: Path, data_dimensions) -> Dict[int, np.nda
     reduced_weights = pca_cluster.fit_transform(weights)
     # print(reduced_weights.shape)
 
+    # range n_cluster in cluster_numbers instead of selecting the specific value of interest
+    # to keep the same random seed and make it comparable to cluster_client_evaluation.py
     cluster_numbers = list(range(2, min(41, weights.shape[0] - 1)))
     kmeans_labels: Dict[int, np.ndarray] = {}
 
@@ -95,7 +97,7 @@ if not args.show:
     # rcParams["lines.linewidth"] = 0.75
     # rcParams["lines.markersize"] = 2
     plot_width = 3.487  # in
-    plot_height = 3.487
+    plot_height = 2.155  # 3.487
 
 # Target clustering
 reference_cluster = [('air-quality-1', 0),
@@ -200,3 +202,19 @@ sns.boxplot(data=results_df, x="Fraction", y="Score",
             flierprops={"marker": "o"},
             ax=ax)
 fig.show()
+
+# new figure
+results_df_pivoted = pd.pivot(results_df, index="Repetition", columns="Fraction")
+fraction_labels = results_df_pivoted.columns.get_level_values(1).to_numpy() * 100
+
+fig, ax = plt.subplots()
+ax.boxplot(results_df_pivoted, labels=fraction_labels, capprops=dict(color="black", linewidth=3))
+ax.hlines(y=1.0, xmin=ax.get_xlim()[0], xmax=ax.get_xlim()[1], colors="silver", linestyles="dotted")
+ax.set_xlabel("training data fraction (%)")
+ax.set_ylabel("adjusted rand score")
+if args.show:
+    fig.show()
+else:
+    fig.set_size_inches(plot_width, plot_height)
+    fig.tight_layout()
+    fig.savefig(args.dir / f"cluster_stability_varying_fraction.{args.image_format}", format=args.image_format)
