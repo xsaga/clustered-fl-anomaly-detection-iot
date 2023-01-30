@@ -14,13 +14,6 @@ set -e
 command -v parallel >/dev/null 2>&1 || { echo >&2 "Install GNU Parallel.  Aborting."; exit 1; }
 python -c "import torch; print(torch.__version__)" || { echo >&2 "Configure your python environment. Aborting."; exit 1; }
 
-if [ -f "initial_random_model_ae.pt" ]; then
-    echo "initial_random_model_ae.pt exists."
-else
-    echo "Creating initial_random_model_ae.pt"
-    python create_initial_random_model_ae.py 69
-fi
-
 echo "$(ls -- *.pcap | wc -l)" training files found.
 
 date '+%s' > start.timestamp
@@ -28,14 +21,33 @@ date '+%s' > start.timestamp
 # Fix epsilon (number of training epochs)
 EPSILON=4
 
-for FRACTION in 0.01 0.1 0.2 0.4 0.6 0.8 0.99
+for ITERNUM in $(seq 10)
 do
-    echo "========== $FRACTION =========="
-    mkdir clus_${EPSILON}epochs_port_hier_iot_${FRACTION}frac
-    parallel --verbose --bar --ungroup --jobs 10 python {1} -d 69 -e $EPSILON -f $FRACTION {2} ::: cluster_client_ae.py ::: *.pcap
+    # create random model, inside an if because in the first
+    # iteration we might want to use a specific initial model
+    # already in the directory.
+    if [ -f "initial_random_model_ae.pt" ]; then
+	echo "initial_random_model_ae.pt exists."
+    else
+	echo "Creating initial_random_model_ae.pt"
+	python create_initial_random_model_ae.py 69
+    fi
+
+    # do clustering experiment
+    for FRACTION in 0.01 0.1 0.2 0.4 0.6 0.8 0.99
+    do
+	echo "========== REPETITION: $ITERNUM FRACTION: $FRACTION =========="
+	mkdir clus_${EPSILON}epochs_port_hier_iot_rep${ITERNUM}_${FRACTION}frac
+	parallel --verbose --bar --ungroup --jobs 10 python {1} -d 69 -e $EPSILON -f $FRACTION {2} ::: cluster_client_ae.py ::: *.pcap
+	sleep 5
+	mv -- *_ae.pt clus_${EPSILON}epochs_port_hier_iot_rep${ITERNUM}_${FRACTION}frac
+	mv clus_${EPSILON}epochs_port_hier_iot_rep${ITERNUM}_${FRACTION}frac/initial_random_model_ae.pt .
+    done
     sleep 5
-    mv -- *_ae.pt clus_${EPSILON}epochs_port_hier_iot_${FRACTION}frac
-    mv clus_${EPSILON}epochs_port_hier_iot_${FRACTION}frac/initial_random_model_ae.pt .
+
+    # backup random model of this repetition and delete it
+    mkdir -p clus_${EPSILON}_initial_random_models/rep_${ITERNUM}
+    mv initial_random_model_ae.pt clus_${EPSILON}_initial_random_models/rep_${ITERNUM}
 done
 
 date '+%s' > end.timestamp
