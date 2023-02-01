@@ -17,6 +17,7 @@ from matplotlib import cm
 from matplotlib import rcParams
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
+import matplotlib.patches as mpatches
 import seaborn as sns
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
@@ -39,7 +40,7 @@ def count_cluster_items(cluster_predicted: np.ndarray, item_labels: np.ndarray) 
     return result
 
 
-def create_clustering(experiment_dir: Path, data_dimensions) -> Dict[int, np.ndarray]:
+def create_clustering(experiment_dir: Path, data_dimensions) -> Tuple[List[str], Dict[int, np.ndarray]]:
     np.random.seed(1)
 
     model_paths = list(experiment_dir.glob("*.pt"))
@@ -72,7 +73,7 @@ def create_clustering(experiment_dir: Path, data_dimensions) -> Dict[int, np.nda
         kmeans = KMeans(n_clusters=n_clusters, init="k-means++", n_init=50).fit(reduced_weights)
         kmeans_labels[n_clusters] = kmeans.labels_
 
-    return kmeans_labels
+    return names, kmeans_labels
 
 
 def eval_clustering(labels_true: np.ndarray, labels_pred: np.ndarray) -> float:
@@ -179,6 +180,7 @@ reference_cluster = [('air-quality-1', 0),
                      ('stream-consumer-1', 4),
                      ('stream-consumer-2', 4)]
 
+reference_names = list(map(lambda x: x[0], reference_cluster))
 reference_labels = np.array(list(map(lambda x: x[1], reference_cluster)))
 best_n_clusters = np.max(reference_labels) + 1
 
@@ -191,8 +193,14 @@ for child in filter(lambda x: x.is_dir() and re.match(file_pattern, x.name), arg
     child_match = re.match(file_pattern, child.name)
     repetition = int(child_match.group(1))
     fraction = float(child_match.group(2))
-    all_clusters = create_clustering(child, args.dimensions)
-    score = eval_clustering(reference_labels, all_clusters[best_n_clusters])
+    names, all_clusters = create_clustering(child, args.dimensions)
+    # the order of .glob() and .iterdir() can be arbitrary,
+    # the reference clustering and the evaluated clustering must
+    # be aligned by device name to compare clustering score
+    reference_series = pd.Series(reference_labels, index=reference_names, name="reference")
+    eval_series = pd.Series(all_clusters[best_n_clusters], index=names, name="eval")
+    aligned_df = pd.concat([reference_series, eval_series], axis=1)
+    score = eval_clustering(aligned_df["reference"].to_numpy(), aligned_df["eval"].to_numpy())
     print(f"-> rep {repetition}\tfrac {fraction}:\t{score}")
     results.append((fraction, repetition, score))
 
@@ -208,10 +216,14 @@ results_df_pivoted = pd.pivot(results_df, index="Repetition", columns="Fraction"
 fraction_labels = results_df_pivoted.columns.get_level_values(1).to_numpy() * 100
 
 fig, ax = plt.subplots()
-ax.boxplot(results_df_pivoted, labels=fraction_labels, capprops=dict(color="black", linewidth=3))
-ax.hlines(y=1.0, xmin=ax.get_xlim()[0], xmax=ax.get_xlim()[1], colors="silver", linestyles="dotted")
+ax.set_xlim((-2.5,102.5))
+ax.boxplot(results_df_pivoted, widths=5, labels=fraction_labels, positions=fraction_labels, capprops=dict(color="black", linewidth=3))
+ax.hlines(y=1.0, xmin=1, xmax=100, colors="silver", linestyles="dotted")
 ax.set_xlabel("training data fraction (%)")
 ax.set_ylabel("adjusted rand score")
+ax.legend([mpatches.Rectangle([0,0], width=1, height=1, facecolor="white", edgecolor="black")],
+          [f"Adjusted Rand score boxplot\nfor {results_df_pivoted.index[-1]} repetitions"],
+          loc="best")
 if args.show:
     fig.show()
 else:
