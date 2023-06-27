@@ -1,5 +1,13 @@
 * Clustered Federated Learning Architecture for Network Anomaly Detection in Large Scale Heterogeneous IoT Networks
 
+This repository contains the source code and implementation of the
+experiments described in the following paper (open access):
+
+X. Sáez-de-Cámara, J. L. Flores, C. Arellano, A. Urbieta and
+U. Zurutuza, "Clustered federated learning architecture for network
+anomaly detection in large scale heterogeneous IoT networks", in
+Computers & Security, doi: [[https://doi.org/10.1016/j.cose.2023.103299][10.1016/j.cose.2023.103299]]
+
 Tested on Ubuntu 22.04 LTS (with venv and pip) and Windows 10 (with
 WSL2 and Conda).
 
