@@ -6,7 +6,19 @@ import numpy as np
 import pandas as pd
 
 from matplotlib import pyplot as plt
+from matplotlib import rcParams
 import seaborn as sns
+
+rcParams["font.family"] = ["Times New Roman"]
+rcParams["font.size"] = 8
+rcParams["xtick.labelsize"] = 8
+rcParams["ytick.labelsize"] = 8
+rcParams["axes.labelsize"] = 8
+rcParams["legend.fontsize"] = 8
+# rcParams["lines.linewidth"] = 0.75
+# rcParams["lines.markersize"] = 2
+plot_height = 2.502  # 3.487  # in
+plot_width = plot_height * 1.2
 
 total_results: Dict[str, List[Dict[str, float]]] = {}
 #              ^- trials for different number of compromised devices
@@ -48,13 +60,30 @@ for k in range(8):
         xxx[trial] = transformed_results[trial][f"Cluster {k}"]
     clusters_first[f"Cluster {k}"] = xxx
 
+# Number of devices in each cluster
+num_dev_clus_map = {0:11,
+                    1:15,
+                    2:11,
+                    3:15,
+                    4:6,
+                    5:10,
+                    6:5,
+                    7:5}
+
 # Plots
 for k in range(8):
     cluster_df = pd.DataFrame(clusters_first[f"Cluster {k}"])
     cluster_df.rename(mapper=lambda x: x.split("_")[1], axis="columns", inplace=True)
+    num_devices = num_dev_clus_map[k]
+
     fig, ax = plt.subplots()
-    sns.boxplot(data=cluster_df, ax=ax)
-    ax.set_title(f"Cluster {k}")
-    ax.set_xlabel("Number of compromised devices")
-    ax.set_ylabel("Average diameter")
-    fig.savefig(BASE_DIR / f"cluster_{k}.png")
+    # sns.boxplot(data=cluster_df, ax=ax, flierprops={"marker": "o"})
+    # ax.set_title(f"Cluster {k}")
+
+    ax.boxplot(cluster_df, labels=[int(i) if int(i) <= num_devices else num_devices for i in cluster_df.columns])
+    ax.axvline(x=num_devices+0.5, ls="dashed", color="red")
+    ax.set_xlabel("Number of compromised devices in cluster")
+    ax.set_ylabel("Average cluster diameter")
+    fig.set_size_inches(plot_width, plot_height)
+    fig.tight_layout()
+    fig.savefig(BASE_DIR / f"cluster_{k}_compromised_diameter.pdf", format="pdf")
